@@ -31,6 +31,9 @@
   #err{padding:20px;color:#ff6b6b}
   details.bio{max-width:340px;white-space:normal}
   details.bio summary{cursor:pointer;color:var(--dim);font-size:12px}
+  .btn{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;
+       padding:7px 10px;font:inherit;cursor:pointer}
+  .btn:hover{border-color:var(--acc);color:var(--acc)}
 </style>
 </head>
 <body>
@@ -42,6 +45,9 @@
     <select id="lvl"><option value="">Semua level</option></select>
     <select id="mcn"><option value="">Semua MCN</option></select>
     <label style="color:var(--dim)"><input type="checkbox" id="starOnly"> Star creator</label>
+    <button class="btn" id="pick">Upload CSV</button>
+    <button class="btn" id="reset" hidden>Reset data</button>
+    <input type="file" id="file" accept=".csv" hidden>
     <span class="count" id="count"></span>
   </div>
 </header>
@@ -51,8 +57,7 @@
 </table></div>
 <div id="err" hidden>
   <p><b>CSV belum ke-load.</b> Browser blokir baca file lokal kalau halaman dibuka langsung.</p>
-  <p>Pilih file <code>affiliate_data.csv</code> di bawah (atau drag ke halaman ini):</p>
-  <p><input type="file" id="file" accept=".csv"></p>
+  <p>Pakai tombol <b>Upload CSV</b> di atas (atau drag file ke halaman ini).</p>
   <p style="color:var(--dim)">Atau jalankan <code>./start.sh</code> di folder ini biar auto-load.</p>
 </div>
 
@@ -115,31 +120,45 @@ const COLS=[
 
 let rows=[], sort={key:'gmv',dir:-1};
 
-fetch('affiliate_data.csv')
-  .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text() })
-  .then(txt=>{
-    const [hdr,...data]=parseCSV(txt);
-    rows=data.map(r=>Object.fromEntries(hdr.map((h,i)=>[h.trim(),(r[i]||'').trim()])));
-    rows.forEach(r=>{ COLS.forEach(([,k,kind])=>{ if(kind==='n') r['_'+k]=num(r[k]) }) });
-    fillSelect('kat','kategori_folder'); fillSelect('lvl','level'); fillSelect('mcn','mcn');
-    buildHead(); render();
-  })
-  .catch(()=>{ document.getElementById('err').hidden=false });  // file:// blocks fetch → picker fallback
+const STORE='affiliateCSV';   // CSV upload-an, biar bertahan saat reload
 
-// fallback: pilih / drag CSV manual (dipakai saat dibuka langsung tanpa server)
+function apply(txt){
+  const [hdr,...data]=parseCSV(txt);
+  rows=data.map(r=>Object.fromEntries(hdr.map((h,i)=>[h.trim(),(r[i]||'').trim()])));
+  rows.forEach(r=>{ COLS.forEach(([,k,kind])=>{ if(kind==='n') r['_'+k]=num(r[k]) }) });
+  fillSelect('kat','kategori_folder'); fillSelect('lvl','level'); fillSelect('mcn','mcn');
+  document.getElementById('err').hidden=true;
+  buildHead(); render();
+}
+
+// CSV upload-an menang atas file bawaan repo; Reset buang yang upload-an.
+const saved=localStorage.getItem(STORE);
+if(saved){ apply(saved); document.getElementById('reset').hidden=false }
+else{
+  fetch('affiliate_data.csv')
+    .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text() })
+    .then(apply)
+    .catch(()=>{ document.getElementById('err').hidden=false });  // file:// blokir fetch
+}
+
 function load(file){
   const fr=new FileReader();
   fr.onload=()=>{
-    const [hdr,...data]=parseCSV(fr.result);
-    rows=data.map(r=>Object.fromEntries(hdr.map((h,i)=>[h.trim(),(r[i]||'').trim()])));
-    rows.forEach(r=>{ COLS.forEach(([,k,kind])=>{ if(kind==='n') r['_'+k]=num(r[k]) }) });
-    fillSelect('kat','kategori_folder'); fillSelect('lvl','level'); fillSelect('mcn','mcn');
-    document.getElementById('err').hidden=true;
-    buildHead(); render();
+    apply(fr.result);
+    // ponytail: quota localStorage ~5MB. CSV 223K masih aman; kalau nanti
+    // tembus, pindah ke IndexedDB.
+    try{ localStorage.setItem(STORE,fr.result); document.getElementById('reset').hidden=false }
+    catch(e){ alert('Data tampil, tapi gagal disimpan (file kegedean) — hilang kalau reload.') }
   };
   fr.readAsText(file);
 }
+document.getElementById('pick').onclick=()=>document.getElementById('file').click();
 document.getElementById('file').onchange=e=>e.target.files[0]&&load(e.target.files[0]);
+document.getElementById('reset').onclick=()=>{
+  if(!confirm('Hapus CSV yang kamu upload dan balik ke data bawaan?')) return;
+  localStorage.removeItem(STORE);
+  location.reload();
+};
 document.addEventListener('dragover',e=>e.preventDefault());
 document.addEventListener('drop',e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) load(f) });
 
