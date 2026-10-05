@@ -45,8 +45,13 @@
     <select id="lvl"><option value="">Semua level</option></select>
     <select id="mcn"><option value="">Semua MCN</option></select>
     <label style="color:var(--dim)"><input type="checkbox" id="starOnly"> Star creator</label>
+    <select id="invf">
+      <option value="belum">Belum diundang</option>
+      <option value="udah">Udah diundang</option>
+      <option value="">Semua</option>
+    </select>
     <button class="btn" id="pick">Upload CSV</button>
-    <button class="btn" id="reset" hidden>Reset data</button>
+    <button class="btn" id="reset">Reset data</button>
     <input type="file" id="file" accept=".csv" hidden>
     <span class="count" id="count"></span>
   </div>
@@ -95,6 +100,7 @@ const fmt = n => n==null ? '' : n>=1e9 ? (n/1e9).toFixed(2)+' M'
 
 // ---- columns: [header, csvKey, kind] kind: t=text n=number ----
 const COLS=[
+  ['Undang','_inv','inv'],
   ['Creator','nama','nm'],
   ['Lvl','level','n'],
   ['Pengikut','pengikut','n'],
@@ -121,6 +127,9 @@ const COLS=[
 let rows=[], sort={key:'gmv',dir:-1};
 
 const STORE='affiliateCSV';   // CSV upload-an, biar bertahan saat reload
+const INV='affiliateInvited'; // username yang udah diundang; bertahan walau CSV diganti
+const invited=new Set(JSON.parse(localStorage.getItem(INV)||'[]'));
+const saveInv=()=>localStorage.setItem(INV,JSON.stringify([...invited]));
 
 function apply(txt){
   const [hdr,...data]=parseCSV(txt);
@@ -131,23 +140,13 @@ function apply(txt){
   buildHead(); render();
 }
 
-// CSV upload-an menang atas file bawaan repo; Reset buang yang upload-an.
-const saved=localStorage.getItem(STORE);
-if(saved){ apply(saved); document.getElementById('reset').hidden=false }
-else{
-  fetch('affiliate_data.csv')
-    .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text() })
-    .then(apply)
-    .catch(()=>{ document.getElementById('err').hidden=false });  // file:// blokir fetch
-}
-
 function load(file){
   const fr=new FileReader();
   fr.onload=()=>{
     apply(fr.result);
     // ponytail: quota localStorage ~5MB. CSV 223K masih aman; kalau nanti
     // tembus, pindah ke IndexedDB.
-    try{ localStorage.setItem(STORE,fr.result); document.getElementById('reset').hidden=false }
+    try{ localStorage.setItem(STORE,fr.result) }
     catch(e){ alert('Data tampil, tapi gagal disimpan (file kegedean) — hilang kalau reload.') }
   };
   fr.readAsText(file);
@@ -155,6 +154,7 @@ function load(file){
 document.getElementById('pick').onclick=()=>document.getElementById('file').click();
 document.getElementById('file').onchange=e=>e.target.files[0]&&load(e.target.files[0]);
 document.getElementById('reset').onclick=()=>{
+  if(!localStorage.getItem(STORE)){ alert('Belum ada CSV upload-an — ini sudah data bawaan.'); return }
   if(!confirm('Hapus CSV yang kamu upload dan balik ke data bawaan?')) return;
   localStorage.removeItem(STORE);
   location.reload();
@@ -186,7 +186,9 @@ function render(){
   const kat=document.getElementById('kat').value, lvl=document.getElementById('lvl').value;
   const mcn=document.getElementById('mcn').value, star=document.getElementById('starOnly').checked;
 
+  const inv=document.getElementById('invf').value;
   let out=rows.filter(r=>
+    (!inv||(inv==='udah')===invited.has(r.username)) &&
     (!kat||r.kategori_folder===kat) && (!lvl||r.level===lvl) && (!mcn||r.mcn===mcn) &&
     (!star||/^ya$/i.test(r.star_creator)) &&
     (!q||[r.nama,r.username,r.bio,r.mcn,r.kategori].join(' ').toLowerCase().includes(q))
@@ -194,6 +196,7 @@ function render(){
 
   const kind=(COLS.find(c=>c[1]===sort.key)||[])[2];
   out.sort((a,b)=>{
+    if(kind==='inv') return (invited.has(a.username)-invited.has(b.username))*sort.dir;
     if(kind==='n'){
       const x=a['_'+sort.key], y=b['_'+sort.key];
       if(x==null) return 1; if(y==null) return -1;   // nulls last, both directions
@@ -204,6 +207,7 @@ function render(){
 
   document.getElementById('count').textContent=`${out.length} / ${rows.length} creator`;
   document.getElementById('body').innerHTML = out.map(r=>'<tr>'+COLS.map(([,k,kind])=>{
+    if(kind==='inv') return `<td class="num"><input type="checkbox" class="invbox" data-u="${esc(r.username)}"${invited.has(r.username)?' checked':''}></td>`;
     if(kind==='nm') return `<td><div class="nm">${/^ya$/i.test(r.star_creator)?'<span class="star">★</span> ':''}`+
       `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.nama||r.username)}</a></div>`+
       `<div class="un">@${esc(r.username)}</div></td>`;
@@ -213,10 +217,29 @@ function render(){
   }).join('')+'</tr>').join('');
 }
 
-['q','kat','lvl','mcn','starOnly'].forEach(id=>{
+// Centang = diundang. Baris langsung hilang dari list "Belum diundang".
+document.getElementById('body').addEventListener('change',e=>{
+  const b=e.target.closest('.invbox'); if(!b) return;
+  b.checked ? invited.add(b.dataset.u) : invited.delete(b.dataset.u);
+  saveInv(); render();
+});
+
+['q','kat','lvl','mcn','starOnly','invf'].forEach(id=>{
   const el=document.getElementById(id);
   el.addEventListener(el.tagName==='INPUT'&&el.type==='search'?'input':'change',render);
 });
+
+// Bootstrap WAJIB paling bawah: apply() pakai esc/COLS/dkk yang `const`,
+// kalau dipanggil di tengah script kena TDZ dan handler tombol nggak kepasang.
+// CSV upload-an menang atas file bawaan repo; Reset buang yang upload-an.
+const saved=localStorage.getItem(STORE);
+if(saved){ apply(saved) }
+else{
+  fetch('affiliate_data.csv')
+    .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text() })
+    .then(apply)
+    .catch(()=>{ document.getElementById('err').hidden=false });  // file:// blokir fetch
+}
 </script>
 </body>
 </html>
