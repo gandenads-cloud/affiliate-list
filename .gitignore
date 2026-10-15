@@ -1,3 +1,12 @@
+# Tooling lokal
 extract.py
 start.sh
+
+# Semua data affiliate (username / WA / stats) — lokal aja, jangan ke-push
+*.csv
+*.txt
+BELUM-MASUK.md
+
+# Folder kerja, kecuali apps/
 */
+!apps/

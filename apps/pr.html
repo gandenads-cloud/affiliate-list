@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR / Outreach List</title>
+<style>
+  :root{--bg:#0f1115;--card:#171a21;--line:#262b36;--fg:#e6e8ec;--dim:#8b93a3;--acc:#4a9eff;--ok:#3fb950}
+  @media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--card:#fff;--line:#e2e5ea;--fg:#1a1d23;--dim:#6b7280;--acc:#1c6fd4;--ok:#1a7f37}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+  header{padding:16px 20px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:3}
+  h1{margin:0 0 10px;font-size:17px;font-weight:600}
+  h1 a{color:var(--dim);text-decoration:none;font-weight:400;font-size:13px}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input,select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:inherit}
+  input[type=search]{min-width:200px;flex:1}
+  .count{color:var(--dim);font-size:13px;margin-left:auto}
+  .wrap{overflow:auto;max-height:calc(100vh - 92px)}
+  table{border-collapse:collapse;width:100%}
+  th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{position:sticky;top:0;background:var(--card);cursor:pointer;user-select:none;font-weight:600;font-size:12px;
+     text-transform:uppercase;letter-spacing:.03em;color:var(--dim)}
+  th:hover{color:var(--fg)} th.sorted{color:var(--acc)}
+  tbody tr:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--dim)}
+  a{color:var(--acc)}
+  .nm{font-weight:600}
+  .wa{color:var(--ok);text-decoration:none}
+  .nowa{color:var(--dim);font-size:12px}
+  .btn{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;
+       padding:7px 10px;font:inherit;cursor:pointer}
+  .btn:hover{border-color:var(--acc);color:var(--acc)}
+  #err{padding:20px;color:#ff6b6b}
+  textarea{width:100%;min-width:180px;background:var(--bg);color:var(--fg);border:1px solid var(--line);
+           border-radius:6px;padding:5px 7px;font:inherit;resize:vertical;min-height:30px}
+  dialog{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;
+         padding:0;max-width:min(900px,94vw);width:100%}
+  dialog::backdrop{background:#0008}
+  .dlg-h{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
+  .dlg-h b{font-size:15px} .dlg-b{padding:14px 16px;max-height:70vh;overflow:auto}
+  #tpltbl{width:100%;border-collapse:collapse}
+  #tpltbl th{position:static;background:none}
+  #tpltbl td{white-space:normal;vertical-align:top}
+  #tpltbl input{width:100%;min-width:90px}
+  #tpltbl textarea{min-height:76px}
+  .hint{color:var(--dim);font-size:12px;margin:0 0 10px}
+  .hint code{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:1px 4px}
+  select.pf{max-width:130px}
+</style>
+</head>
+<body>
+<header>
+  <h1>PR / Outreach List <a href="index.html">← apps</a></h1>
+  <div class="bar">
+    <input type="search" id="q" placeholder="Cari username / catatan…">
+    <select id="waf">
+      <option value="">Semua</option>
+      <option value="ada">Ada WA</option>
+      <option value="kosong">Belum ada WA</option>
+    </select>
+    <select id="stf">
+      <option value="">Semua status</option>
+      <option value="belum">Belum dihubungi</option>
+      <option value="dihubungi">Dihubungi</option>
+      <option value="balas">Balas</option>
+      <option value="deal">Deal</option>
+      <option value="tolak">Tolak</option>
+    </select>
+    <button class="btn" id="paste">Paste List</button>
+    <button class="btn" id="pick">Upload CSV</button>
+    <button class="btn" id="exp">Export CSV</button>
+    <button class="btn" id="reset">Reset data</button>
+    <button class="btn" id="tpl">Template WA</button>
+    <input type="file" id="file" accept=".csv" hidden>
+    <span class="count" id="count"></span>
+  </div>
+</header>
+<div class="wrap"><table>
+  <thead><tr id="head"></tr></thead>
+  <tbody id="body"></tbody>
+</table></div>
+<div id="err" hidden>
+  <p><b>CSV belum ke-load.</b> Browser blokir baca file lokal kalau halaman dibuka langsung.</p>
+  <p>Pakai tombol <b>Upload CSV</b> di atas (atau drag file ke halaman ini).</p>
+  <p style="color:var(--dim)">Atau jalankan <code>../start.sh</code> biar auto-load.</p>
+</div>
+
+<dialog id="pdlg">
+  <div class="dlg-h">
+    <b>Paste list affiliate</b>
+    <span style="flex:1"></span>
+    <button class="btn" id="p-ok">Import</button>
+    <button class="btn" id="p-close">Tutup</button>
+  </div>
+  <div class="dlg-b">
+    <p class="hint">Tempel apa aja — <b>username nomor</b> berpasangan, dipisah spasi,
+      tab, koma, atau enter. Angka ≥7 digit dianggap WA; username tanpa nomor tetap masuk
+      (kolom WA kosong). <code>@</code> di depan dibuang otomatis, duplikat dilewati.</p>
+    <textarea id="p-in" style="min-height:260px;font-family:ui-monospace,monospace"
+      placeholder="fatimahjh0 895324525606&#10;glowieessguide1 881022019285&#10;haiilayy_ 89697554007"></textarea>
+    <p class="hint" id="p-prev" style="margin:8px 0 0"></p>
+    <label class="hint" style="display:block;margin:8px 0 0">
+      <input type="checkbox" id="p-append"> Tambahkan ke list sekarang (jangan ganti)
+    </label>
+  </div>
+</dialog>
+
+<dialog id="dlg">
+  <div class="dlg-h">
+    <b>Template follow-up WA</b>
+    <span style="flex:1"></span>
+    <button class="btn" id="tpl-add-p">+ Produk</button>
+    <button class="btn" id="tpl-add-f">+ Fase</button>
+    <button class="btn" id="tpl-close">Tutup</button>
+  </div>
+  <div class="dlg-b">
+    <p class="hint">Satu teks per kombinasi produk × fase. Placeholder:
+      <code>{username}</code> <code>{produk}</code> <code>{fase}</code> <code>{no}</code>.
+      Kosongin baris nama produk/fase buat hapus kolom/baris itu.</p>
+    <table id="tpltbl"></table>
+  </div>
+</dialog>
+
+<script>
+// ---- CSV parse/serialize (RFC4180) ----
+function parseCSV(text){
+  text=text.replace(/^﻿/,'');
+  const rows=[]; let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++} else q=false } else f+=c }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(f); f='' }
+    else if(c==='\n'){ row.push(f); f=''; rows.push(row); row=[] }
+    else if(c!=='\r') f+=c;
+  }
+  if(f||row.length){ row.push(f); rows.push(row) }
+  return rows.filter(r=>r.length>1);
+}
+const csvCell = v => /[",\n]/.test(v=String(v??'')) ? '"'+v.replace(/"/g,'""')+'"' : v;
+
+const STATUS=['belum','dihubungi','balas','deal','tolak'];
+
+// ---- template follow-up per (produk, fase) ----
+const TPL='prTpl';
+const tplDefault={
+  produk:['Vitacream'],
+  fase:['Pembuka','Follow-up 1','Follow-up 2','Closing'],
+  text:{'Vitacream||Pembuka':'Hai @{username}, aku dari tim {produk}. Mau nawarin kolaborasi affiliate — komisi 10% + free sample. Minat?'}
+};
+let tpl=JSON.parse(localStorage.getItem(TPL)||'null')||tplDefault;
+const saveTpl=()=>localStorage.setItem(TPL,JSON.stringify(tpl));
+const tplKey=(p,f)=>p+'||'+f;
+const tplGet=(p,f)=>tpl.text[tplKey(p,f)]||'';
+
+// 08xx / 8xx / +62 → 62xx. Non-digit dibuang.
+function waNum(raw){
+  let d=String(raw||'').replace(/\D/g,'');
+  if(!d) return '';
+  if(d.startsWith('62')) return d;
+  if(d.startsWith('0')) return '62'+d.slice(1);
+  return '62'+d;
+}
+const fillTpl=(t,r)=>String(t)
+  .replace(/\{username\}/g,r.username)
+  .replace(/\{produk\}/g,m(r.username).produk||'')
+  .replace(/\{fase\}/g,m(r.username).fase||'')
+  .replace(/\{no\}/g,r.no||'');
+const COLS=[
+  ['No','no','num'],
+  ['Username','username','nm'],
+  ['WA','wa','wa'],
+  ['Produk','_produk','produk'],
+  ['Fase','_fase','fase'],
+  ['Status','_st','st'],
+  ['Catatan','_note','note'],
+];
+
+let rows=[], sort={key:'no',dir:1};
+
+const STORE='prCSV';      // CSV upload-an
+const META='prMeta';      // {username:{st,note}} — bertahan walau CSV diganti
+const meta=JSON.parse(localStorage.getItem(META)||'{}');
+const saveMeta=()=>localStorage.setItem(META,JSON.stringify(meta));
+const m = u => {
+  const d = meta[u] || (meta[u]={});
+  d.st??='belum'; d.note??=''; d.produk??=tpl.produk[0]||''; d.fase??=tpl.fase[0]||'';
+  return d;
+};
+
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function apply(txt){
+  const [hdr,...data]=parseCSV(txt);
+  const h=hdr.map(x=>x.trim().toLowerCase());
+  rows=data.map(r=>Object.fromEntries(h.map((k,i)=>[k,(r[i]||'').trim()])))
+           .filter(r=>r.username);
+  document.getElementById('err').hidden=true;
+  buildHead(); render();
+}
+
+function load(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    apply(fr.result);
+    // ponytail: localStorage ~5MB; list PR kecil (<10K). Kalau nanti puluhan ribu
+    // baris, pindah ke IndexedDB.
+    try{ localStorage.setItem(STORE,fr.result) }
+    catch(e){ alert('Data tampil, tapi gagal disimpan — hilang kalau reload.') }
+  };
+  fr.readAsText(file);
+}
+// ---- import dari teks tempelan ----
+// Token non-digit = username; token >=7 digit = WA-nya. Jadi jalan baik buat
+// satu-pasangan-per-baris maupun satu blob panjang tanpa newline.
+function parseList(txt){
+  const out=[], seen=new Set();
+  for(const t of String(txt).split(/[\s,;|]+/)){
+    const s=t.trim().replace(/^@+/,'');
+    if(!s) continue;
+    const digits=/^[+\d()\-.]+$/.test(s) ? s.replace(/\D/g,'') : '';
+    if(digits){ if(digits.length>=7 && out.length && !out[out.length-1].wa) out[out.length-1].wa=digits; continue }
+    const u=s.toLowerCase();
+    if(seen.has(u)) continue;
+    seen.add(u); out.push({username:s, wa:''});
+  }
+  return out;
+}
+
+const pdlg=document.getElementById('pdlg'), pin=document.getElementById('p-in');
+document.getElementById('paste').onclick=()=>{ pin.value=''; preview(); pdlg.showModal(); pin.focus() };
+document.getElementById('p-close').onclick=()=>pdlg.close();
+function preview(){
+  const p=parseList(pin.value), wa=p.filter(x=>x.wa).length;
+  document.getElementById('p-prev').textContent=p.length
+    ? `Terbaca ${p.length} username, ${wa} punya WA, ${p.length-wa} tanpa WA.`
+    : 'Belum ada yang terbaca.';
+}
+pin.addEventListener('input',preview);
+document.getElementById('p-ok').onclick=()=>{
+  const got=parseList(pin.value);
+  if(!got.length) return alert('Nggak ada username yang kebaca.');
+  const append=document.getElementById('p-append').checked;
+  const base=append ? rows.map(r=>({username:r.username,wa:r.wa})) : [];
+  const seen=new Set(base.map(r=>r.username.toLowerCase()));
+  let dup=0;
+  for(const g of got){
+    if(seen.has(g.username.toLowerCase())){ dup++; continue }
+    seen.add(g.username.toLowerCase()); base.push(g);
+  }
+  const csv=[['no','username','wa'],...base.map((r,i)=>[i+1,r.username,r.wa])]
+    .map(r=>r.map(csvCell).join(',')).join('\n');
+  apply(csv);
+  try{ localStorage.setItem(STORE,csv) }
+  catch(e){ alert('Data tampil, tapi gagal disimpan — hilang kalau reload.') }
+  pdlg.close();
+  alert(`Masuk ${base.length} baris.`+(dup?` ${dup} duplikat dilewati.`:''));
+};
+
+document.getElementById('pick').onclick=()=>document.getElementById('file').click();
+document.getElementById('file').onchange=e=>e.target.files[0]&&load(e.target.files[0]);
+document.getElementById('reset').onclick=()=>{
+  if(!localStorage.getItem(STORE)){ alert('Belum ada CSV upload-an — ini sudah data bawaan.'); return }
+  if(!confirm('Hapus CSV yang kamu upload dan balik ke data bawaan?\n(Status & catatan TIDAK terhapus.)')) return;
+  localStorage.removeItem(STORE);
+  location.reload();
+};
+document.getElementById('exp').onclick=()=>{
+  const head=['no','username','wa','produk','fase','status','catatan'];
+  const body=rows.map(r=>{ const d=m(r.username);
+    return [r.no,r.username,waNum(r.wa),d.produk,d.fase,d.st,d.note] });
+  const csv=[head,...body].map(r=>r.map(csvCell).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));
+  a.download='pr_export_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+};
+// ---- editor template ----
+const dlg=document.getElementById('dlg');
+function renderTpl(){
+  const h='<tr><th></th>'+tpl.produk.map((p,i)=>
+    `<th><input data-p="${i}" value="${esc(p)}"></th>`).join('')+'</tr>';
+  const b=tpl.fase.map((f,j)=>
+    `<tr><th><input data-f="${j}" value="${esc(f)}"></th>`+
+    tpl.produk.map(p=>`<td><textarea data-k="${esc(tplKey(p,f))}">${esc(tplGet(p,f))}</textarea></td>`).join('')+
+    '</tr>').join('');
+  document.getElementById('tpltbl').innerHTML=h+b;
+}
+document.getElementById('tpl').onclick=()=>{ renderTpl(); dlg.showModal() };
+document.getElementById('tpl-close').onclick=()=>dlg.close();
+document.getElementById('tpl-add-p').onclick=()=>{ tpl.produk.push('Produk baru'); saveTpl(); renderTpl() };
+document.getElementById('tpl-add-f').onclick=()=>{ tpl.fase.push('Fase baru');   saveTpl(); renderTpl() };
+dlg.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.k!==undefined){ tpl.text[t.dataset.k]=t.value; saveTpl() }
+});
+dlg.addEventListener('change',e=>{
+  const t=e.target, v=t.value.trim();
+  if(t.dataset.p!==undefined){
+    const old=tpl.produk[+t.dataset.p];
+    if(!v){ if(tpl.produk.length<2) return alert('Minimal 1 produk.');
+             tpl.produk.splice(+t.dataset.p,1) }
+    else { tpl.produk[+t.dataset.p]=v;
+           tpl.fase.forEach(f=>{ const o=tplKey(old,f);
+             if(o in tpl.text){ tpl.text[tplKey(v,f)]=tpl.text[o]; delete tpl.text[o] } });
+           Object.values(meta).forEach(d=>{ if(d.produk===old) d.produk=v }); saveMeta() }
+  } else if(t.dataset.f!==undefined){
+    const old=tpl.fase[+t.dataset.f];
+    if(!v){ if(tpl.fase.length<2) return alert('Minimal 1 fase.');
+             tpl.fase.splice(+t.dataset.f,1) }
+    else { tpl.fase[+t.dataset.f]=v;
+           tpl.produk.forEach(p=>{ const o=tplKey(p,old);
+             if(o in tpl.text){ tpl.text[tplKey(p,v)]=tpl.text[o]; delete tpl.text[o] } });
+           Object.values(meta).forEach(d=>{ if(d.fase===old) d.fase=v }); saveMeta() }
+  } else return;
+  saveTpl(); renderTpl(); render();
+});
+
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) load(f) });
+
+function buildHead(){
+  document.getElementById('head').innerHTML=COLS.map(([h,k])=>
+    `<th data-k="${k}" class="${sort.key===k?'sorted':''}">${h}${sort.key===k?(sort.dir>0?' ▲':' ▼'):''}</th>`
+  ).join('');
+  document.querySelectorAll('th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    sort = sort.key===k ? {key:k,dir:-sort.dir} : {key:k,dir:1};
+    buildHead(); render();
+  });
+}
+
+function render(){
+  const q=document.getElementById('q').value.toLowerCase().trim();
+  const waf=document.getElementById('waf').value, stf=document.getElementById('stf').value;
+
+  let out=rows.filter(r=>
+    (!waf||(waf==='ada')===!!r.wa) &&
+    (!stf||m(r.username).st===stf) &&
+    (!q||[r.username,m(r.username).note].join(' ').toLowerCase().includes(q))
+  );
+
+  out.sort((a,b)=>{
+    if(sort.key==='no')  return (+a.no - +b.no)*sort.dir;
+    if(sort.key==='_st') return (STATUS.indexOf(m(a.username).st)-STATUS.indexOf(m(b.username).st))*sort.dir;
+    const metaKey={_note:'note',_produk:'produk',_fase:'fase'}[sort.key];
+    const v = k => metaKey ? m(k.username)[metaKey] : (k[sort.key]||'');
+    return String(v(a)).localeCompare(String(v(b)),'id')*sort.dir;
+  });
+
+  const done=rows.filter(r=>m(r.username).st!=='belum').length;
+  document.getElementById('count').textContent=`${out.length} / ${rows.length} • ${done} sudah diproses`;
+
+  document.getElementById('body').innerHTML=out.map(r=>{
+    const d=m(r.username), u=esc(r.username);
+    return '<tr>'+COLS.map(([,k,kind])=>{
+      if(kind==='num')  return `<td class="num">${esc(r.no)}</td>`;
+      if(kind==='nm')   return `<td><a class="nm" href="https://www.tiktok.com/@${encodeURIComponent(r.username)}" target="_blank" rel="noopener">@${u}</a></td>`;
+      if(kind==='wa'){
+        const n=waNum(r.wa);
+        if(!n) return '<td><span class="nowa">—</span></td>';
+        const msg=fillTpl(tplGet(d.produk,d.fase),r);
+        const href=`https://wa.me/${n}`+(msg?`?text=${encodeURIComponent(msg)}`:'');
+        return `<td><a class="wa" href="${href}" target="_blank" rel="noopener"${msg?'':' title="Template kosong — isi di Template WA"'}>${n}${msg?'':' ⚠'}</a></td>`;
+      }
+      if(kind==='produk') return `<td><select class="pf pbox" data-u="${u}">`+
+        tpl.produk.map(p=>`<option value="${esc(p)}"${d.produk===p?' selected':''}>${esc(p)}</option>`).join('')+'</select></td>';
+      if(kind==='fase')   return `<td><select class="pf fbox" data-u="${u}">`+
+        tpl.fase.map(f=>`<option value="${esc(f)}"${d.fase===f?' selected':''}>${esc(f)}</option>`).join('')+'</select></td>';
+      if(kind==='st')   return `<td><select class="stbox" data-u="${u}">`+
+        STATUS.map(s=>`<option value="${s}"${d.st===s?' selected':''}>${s}</option>`).join('')+'</select></td>';
+      return `<td><textarea class="nbox" data-u="${u}" rows="1" placeholder="catatan…">${esc(d.note)}</textarea></td>`;
+    }).join('')+'</tr>';
+  }).join('');
+}
+
+const body=document.getElementById('body');
+body.addEventListener('change',e=>{
+  const s=e.target.closest('.stbox');
+  if(s){ m(s.dataset.u).st=s.value; saveMeta(); render(); return }
+  const p=e.target.closest('.pbox');
+  if(p){ m(p.dataset.u).produk=p.value; saveMeta(); render(); return }
+  const f=e.target.closest('.fbox');
+  if(f){ m(f.dataset.u).fase=f.value; saveMeta(); render() }
+});
+body.addEventListener('input',e=>{
+  const t=e.target.closest('.nbox'); if(!t) return;
+  m(t.dataset.u).note=t.value; saveMeta();   // no re-render: jaga fokus saat ngetik
+});
+
+['q','waf','stf'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener(el.type==='search'?'input':'change',render);
+});
+
+// Bootstrap paling bawah: apply() pakai const di atas, kalau dipanggil
+// di tengah script kena TDZ dan handler tombol nggak kepasang.
+const saved=localStorage.getItem(STORE);
+if(saved){ apply(saved) }
+else{
+  fetch('pr_data.csv')
+    .then(r=>{ if(!r.ok) throw new Error(r.status); return r.text() })
+    .then(apply)
+    .catch(()=>{ document.getElementById('err').hidden=false });
+}
+</script>
+</body>
+</html>

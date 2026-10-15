@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TETULUNG Apps</title>
+<style>
+  :root{--bg:#0f1115;--card:#171a21;--line:#262b36;--fg:#e6e8ec;--dim:#8b93a3;--acc:#4a9eff}
+  @media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--card:#fff;--line:#e2e5ea;--fg:#1a1d23;--dim:#6b7280;--acc:#1c6fd4}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;
+       padding:32px 20px;max-width:760px;margin-inline:auto}
+  h1{margin:0 0 4px;font-size:20px;font-weight:600}
+  p.sub{margin:0 0 24px;color:var(--dim)}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  a.app{display:block;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:10px;
+        text-decoration:none;color:inherit}
+  a.app:hover{border-color:var(--acc)}
+  a.app b{display:block;font-size:15px;margin-bottom:4px;color:var(--acc)}
+  a.app span{color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+  <h1>TETULUNG Apps</h1>
+  <p class="sub">Launcher internal. App baru tinggal tambah kartu di bawah.</p>
+  <div class="grid">
+    <a class="app" href="../index.html"><b>Affiliate Creator List</b><span>274+ kreator Tokopedia — GMV, level, MCN, status undangan</span></a>
+    <a class="app" href="pr.html"><b>PR / Outreach List</b><span>128 kreator PR — nomor WA, status dihubungi</span></a>
+  </div>
+</body>
+</html>
