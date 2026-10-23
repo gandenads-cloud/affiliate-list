@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Parser - Sampel Gratis</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --line: #334155;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #60a5fa;
+      --accent-2: #34d399;
+      --danger: #f87171;
+      --warning: #fbbf24;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 0 16px 40px;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 280px;
+      resize: vertical;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 8px 0 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(17, 24, 39, 0.7);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      background: #0b1220;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    tbody tr:hover {
+      background: rgba(96, 165, 250, 0.06);
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .waiting { background: rgba(251, 191, 36, 0.15); color: #fcd34d; }
+    .transit { background: rgba(96, 165, 250, 0.15); color: #93c5fd; }
+    .sent { background: rgba(52, 211, 153, 0.15); color: #6ee7b7; }
+    .cancelled { background: rgba(248, 113, 113, 0.12); color: #fca5a5; }
+
+    .empty {
+      color: var(--muted);
+      padding: 20px 0;
+      text-align: center;
+    }
+
+    .codebox {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Order Parser - Sampel Gratis</h1>
+
+    <div class="topbar">
+      <button id="loadExample">Isi contoh</button>
+      <button id="parseBtn">Parse sekarang</button>
+      <button id="copyCsv">Copy CSV</button>
+    </div>
+
+    <textarea id="rawData" placeholder="Paste data disini..."></textarea>
+
+    <div class="toolbar">
+      <span class="meta" id="meta">Belum ada data yang diparse.</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>ID Pesanan</th>
+          <th>Nomor Resi</th>
+          <th>Tanggal Kirim</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="codebox" id="csvBox"></div>
+  </div>
+
+  <script>
+    const rawData = document.getElementById('rawData');
+    const rowsEl = document.getElementById('rows');
+    const metaEl = document.getElementById('meta');
+    const csvBox = document.getElementById('csvBox');
+
+    const exampleText = `PesananPembeliProdukStatus pesananMetode pengirimanOpsi pengirimanTotal586737986582054030Sampel gratis10 mnt yang lalufarhanshop02051 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman StandarRp0586737846364571044Sampel gratis25 mnt yang laluseptisp___1 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman EkonomisRp0586737757143598502Sampel gratis31 mnt yang lalenspallspillproduk0241 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman StandarRp0586737712924952119Sampel gratis31 mnt yang laludulsfi31 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman StandarRp0586737712882156798Sampel gratis31 mnt yang lalucokelatkeju891 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman StandarRp0586736829830694418Hari ini 08.09.23wiedyarie152 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2038626784Pengiriman EkonomisRp203.414586733366163048226Kamis 23.50.07mimi.lindayeni21 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2071176804Pengiriman EkonomisRp120.089586731999855936894Kamis 21.59.45mujib.bahtiar1 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2077246794Pengiriman besok sampaiRp108.533586729776655664731Kamis 19.58.45heypi.o1 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2089437614Pengiriman StandarRp112.949586724269796984024Kamis 19.24.28ayankxblingurah1 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2002477624Pengiriman StandarRp110.677586724661586986323Kamis 14.04.32asmi66921 produkTerkirimDikirim melalui platformJ&T Express, JY2048002644Pengiriman besok sampaiRp115.978586724529568712414Sampel gratisKamis 13.52.15mimelpicks1 produkSedang transitDikirim melalui platformJ&T Express, JY2068492634Pengiriman EkonomisRp0586724497303569409Sampel gratisKamis 13.52.08apriliaarzky1 produkSedang transitDikirim melalui platformJ&T Express, JY2065802644Pengiriman besok sampaiRp0586724497303373190Sampel gratisKamis 13.52.08jeaniuslittlegoods1 produkSedang transitDikirim melalui platformJ&T Express, JY2028422644Pengiriman StandarRp0586724420362142842Sampel gratisKamis 11.21.16perintismudaa221 produkSedang transitDikirim melalui platformJ&T Express, JY2044652634Pengiriman EkonomisRp0586722273684325651Sampel gratisKamis 11.19.19abdllfaqih1 produkSedang transitDikirim melalui platformJ&T Express, JY2073830774Pengiriman StandarRp0586722196646168221Sampel gratisKamis 11.19.15cozycheckout_nevia1 produkSedang transitDikirim melalui platformJ&T Express, JY2027431464Pengiriman besok sampaiRp0586722182321702408Sampel gratisKamis 11.19.14ria.ira_1 produkSedang transitDikirim melalui platformJ&T Express, JY2025321464Pengiriman EkonomisRp0586722182304597290Sampel gratisKamis 11.19.13aarums121 produkSedang transitDikirim melalui platformJ&T Express, JY2009631464Pengiriman EkonomisRp0586722180762863402Sampel gratisKamis 11.19.09kolidah061 produkSedang transitDikirim melalui platformJ&T Express, JY2077340754Pengiriman StandarRp0586722216257029443Sampel gratisKamis 10.57.18nadir.shopp1 produkTerkirimDikirim melalui platformJ&T Express, JY2040261464Pengiriman StandarRp0586721910474114437Sampel gratisKamis 10.51.25elmusytaka01 produkSedang transitDikirim melalui platformJ&T Express, JY2012399903Pengiriman StandarRp0586721824147867498Sampel gratisKamis 10.30.48tazaka.beautyglow1 produkSedang transitDikirim melalui platformJ&T Express, JY2090119903Pengiriman StandarRp0586721374223042556Kamis 08.10.08r*************11 produkBelum DibayarDikirim melalui platformRp118.900586719533123011786Kamis 07.53.38buk.genta1 produkSedang transitDikirim melalui platformJ&T Express, JY2036548643Pengiriman EkonomisRp120.089586719267433317636Kamis 07.53.38ayazz_perizma1 produkTerkirimDikirim melalui platformJ&T Express, JY2014778633Pengiriman besok sampaiRp114.144586715010463335846Rabu 22.18.17erni785891 produkSedang transitDikirim melalui platformJ&T Express, JY2094628643Pengiriman EkonomisRp148.470586711525626971605Sampel gratisRabu 18.58.10superpromo1000_1 produkSedang transitDikirim melalui platformJ&T Express, JY2009539293Pengiriman StandarRp0586711521857144681Sampel gratisRabu 18.54.08hanicantik__1 produkSedang transitDikirim melalui platformJ&T Express, JY2046329293Pengiriman StandarRp0586702744665359411Rabu 11.35.33iesen.tjoeng1 produkTerkirimDikirim melalui platformJ&T Express, JY2043182573Pengiriman besok sampaiRp44.600586702571490935859Rabu 11.24.34i**********g1 produkTerkirimDikirim melalui platformJ&T Express, JY2067232573Pengiriman besok sampaiRp67.640586702326246901418Rabu 11.08.00c*********t1 produkSedang transitDikirim melalui platformJ&T Express, JY2011981513Pengiriman EkonomisRp111.000586702278742935388Rabu 11.02.29T***********n3 produkTerkirimDikirim melalui platformJ&T Express, JY2038251503Pengiriman StandarRp77.600586693418120087449Selasa 20.26.214****91 produkSedang transitDikirim melalui platformJ&T Express, JY2092020193Pengiriman EkonomisRp119.453586692017360832409Selasa 19.07.324****91 produkSedang transitDikirim melalui platformJ&T Express, JY2040470943Pengiriman EkonomisRp108.848586689342229873706Sampel gratisSelasa 16.03.07fannynurra1 produkTerkirimDikirim melalui platformJ&T Express, JY2060310953Pengiriman StandarRp0586685970892293589Selasa 12.52.10i********t1 produkSedang transitDikirim melalui platformJ&T Express, JY2026834222Pengiriman EkonomisRp119.685586684943055226480Sampel gratisSelasa 11.49.12spallspillllllllllllllll1 produkTerkirimDikirim melalui platformJ&T Express, JY2039763402Pengiriman StandarRp0586684393943369485Selasa 10.08.26vidimulyanto_1 produkTerkirimDikirim melalui platformJ&T Express, JY2085744232Pengiriman StandarRp0586683330747794699Sampel gratisSelasa 09.56.07syana_861 produkTerkirimDikirim melalui platformJ&T Express, JY2092223422Pengiriman StandarRp0586683116330255811Sampel gratisSelasa 09.39.28noorazizahsalsa1 produkSedang transitDikirim melalui platformJ&T Express, JY2003374222Pengiriman EkonomisRp0586682827659117727Sampel gratisSelasa 09.23.32mang.didin581 produkTerkirimDikirim melalui platformJ&T Express, JY2040921872Pengiriman besok sampaiRp0586682833425892547Sampel gratisSelasa 09.23.27intanandriani221 produkTerkirimDikirim melalui platformJ&T Express, JY2019281012Pengiriman StandarRp0586682849515898302Sampel gratisSelasa 09.23.27trandshop81 produkTerkirimDikirim melalui platformJ&T Express, JY2035491012Pengiriman StandarRp0586682826190062618Sampel gratisSelasa 09.23.23adminduk221 produkTerkirimDikirim melalui platformJ&T Express, JY2075491012Pengiriman StandarRp0586681875295208761Selasa 08.16.58A**********o3 produkTerkirimDikirim melalui platformJ&T Express, JY2071431022Pengiriman StandarRp77.600586680965718050294Selasa 06.58.45p*******a1 produkDibatalkanDikirim melalui platformRp218.540586680865894335655Selasa 06.45.51w*************r1 produkSedang transitDikirim melalui platformJ&T Express, JY2012071022Pengiriman EkonomisRp225.398`;
+
+    function normalizeText(input) {
+      return input
+        .replace(/&amp;/g, '&')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/\u00a0/g, ' ')
+        .replace(/\r/g, '')
+        .replace(/\n\s*\n/g, '\n');
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function statusClass(status) {
+      const s = String(status || '').toLowerCase();
+      if (s.includes('menunggu')) return 'waiting';
+      if (s.includes('transit')) return 'transit';
+      if (s.includes('terkirim')) return 'sent';
+      if (s.includes('dibatalkan') || s.includes('belum dibayar')) return 'cancelled';
+      return 'waiting';
+    }
+
+    function parseEntries(rawText) {
+      const text = normalizeText(rawText);
+      const entries = [];
+      const sampleRegex = /Sampel\s+gratis/gi;
+
+      let match;
+      while ((match = sampleRegex.exec(text)) !== null) {
+        const sampleIndex = match.index;
+        const nextSampleIndex = text.slice(sampleIndex + match[0].length).search(/Sampel\s+gratis/i);
+        const blockEnd = nextSampleIndex === -1 ? text.length : sampleIndex + match[0].length + nextSampleIndex;
+        const block = text.slice(sampleIndex, blockEnd);
+
+        const datePattern = /(?:Hari ini|Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu)\s+\d{1,2}(?:[.:]\d{2}){1,2}|\d+\s+mnt\s+yang\s+lalu|\d{1,2}[./]\d{1,2}[./]\d{2,4}\s+\d{1,2}:\d{2}:\d{2}/i;
+        const dateMatch = block.match(datePattern);
+        const date = dateMatch ? dateMatch[0].trim() : '-';
+
+        const afterSample = block.replace(/^Sampel\s+gratis\s*/i, '');
+        const strippedBeforeUser = afterSample.replace(/^\s*(?:\d+\s*mnt\s*yang\s*lalu|\d+\s+mnt\s+yang\s+lalu|(?:Hari ini|Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu)\s+\d{1,2}(?:[.:]\d{2}){1,2}|\d{1,2}[./]\d{1,2}[./]\d{2,4}\s+\d{1,2}:\d{2}:\d{2})\s*/i, '');
+        const usernameMatch = strippedBeforeUser.match(/^([A-Za-z0-9_.-]+)(?=\s*(?:\d+\s+)?produk\b|$)/m)
+          || strippedBeforeUser.match(/^([A-Za-z0-9_.-]+?)(?=\s+produk(?=\s|[A-Z])|$)/i);
+        const username = usernameMatch ? usernameMatch[1].trim() : '-';
+
+        const beforeSample = text.slice(0, sampleIndex);
+        const previousNumbers = Array.from(beforeSample.matchAll(/(?:Total|Rp)(\d{12,19})/gi));
+        const directOrderNumbers = Array.from(beforeSample.matchAll(/(\d{12,19})/g));
+        const orderId = previousNumbers.length
+          ? previousNumbers[previousNumbers.length - 1][1]
+          : directOrderNumbers.length
+            ? directOrderNumbers[directOrderNumbers.length - 1][1]
+            : '-';
+
+        const resiMatch = block.match(/JY\d{8,}/i);
+        const resi = resiMatch ? resiMatch[0] : '-';
+
+        const statusMatch = block.match(/Menunggu pengiriman|Menunggu pengambilan|Sedang transit|Terkirim|Belum Dibayar|Dibatalkan/i);
+        const status = statusMatch ? statusMatch[0] : '-';
+
+        const payload = {
+          username,
+          id_pesanan: orderId,
+          nomor_resi: resi,
+          tanggal_kirim: date,
+          status_pengiriman: status
+        };
+
+        if (username !== '-') {
+          entries.push(payload);
+        }
+      }
+
+      return entries.filter((item, idx, arr) => {
+        const key = `${item.username}|${item.id_pesanan}|${item.nomor_resi}`;
+        return arr.findIndex(x => `${x.username}|${x.id_pesanan}|${x.nomor_resi}` === key) === idx;
+      });
+    }
+
+    function buildCsv(entries) {
+      return [
+        ['username', 'id_pesanan', 'nomor_resi', 'tanggal_kirim', 'status_pengiriman'],
+        ...entries.map(item => [item.username, item.id_pesanan, item.nomor_resi, item.tanggal_kirim, item.status_pengiriman])
+      ].map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+    }
+
+    function renderTable(entries) {
+      if (!entries.length) {
+        rowsEl.innerHTML = '<tr><td colspan="5" class="empty">Tidak ada data valid yang ditemukan. Pastikan teks yang di-paste benar.</td></tr>';
+        csvBox.textContent = '';
+        metaEl.textContent = '0 data ditemukan';
+        return;
+      }
+
+      rowsEl.innerHTML = entries.map(item => `
+        <tr>
+          <td>${escapeHtml(item.username)}</td>
+          <td>${escapeHtml(item.id_pesanan)}</td>
+          <td>${escapeHtml(item.nomor_resi)}</td>
+          <td>${escapeHtml(item.tanggal_kirim)}</td>
+          <td><span class="status ${statusClass(item.status_pengiriman)}">${escapeHtml(item.status_pengiriman)}</span></td>
+        </tr>
+      `).join('');
+
+      const csvText = buildCsv(entries);
+      csvBox.textContent = csvText;
+      metaEl.textContent = `${entries.length} data berhasil diparse. CSV siap dipakai.`;
+    }
+
+    document.getElementById('parseBtn').addEventListener('click', () => {
+      const entries = parseEntries(rawData.value);
+      renderTable(entries);
+
+      if (entries.length) {
+        const csvText = buildCsv(entries);
+        navigator.clipboard.writeText(csvText).catch(() => {});
+      }
+    });
+
+    document.getElementById('loadExample').addEventListener('click', () => {
+      rawData.value = exampleText;
+      const entries = parseEntries(exampleText);
+      renderTable(entries);
+
+      if (entries.length) {
+        const csvText = buildCsv(entries);
+        navigator.clipboard.writeText(csvText).catch(() => {});
+      }
+    });
+
+    document.getElementById('copyCsv').addEventListener('click', async () => {
+      const text = csvBox.textContent.trim();
+      if (!text) {
+        alert('Belum ada data CSV hasil parse.');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('CSV berhasil di-copy ke clipboard.');
+      } catch (error) {
+        alert('Clipboard gagal dipakai. Silakan copy manual dari box CSV.');
+      }
+    });
+
+    rawData.value = exampleText;
+    renderTable(parseEntries(exampleText));
+  </script>
+</body>
+</html>
