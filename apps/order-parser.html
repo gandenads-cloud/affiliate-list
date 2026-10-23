@@ -82,6 +82,29 @@
       align-items: center;
     }
 
+    .sheet-box {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .sheet-box input {
+      flex: 1;
+      min-width: 260px;
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
     .meta {
       color: var(--muted);
       font-size: 13px;
@@ -157,9 +180,15 @@
       <button id="loadExample">Isi contoh</button>
       <button id="parseBtn">Parse sekarang</button>
       <button id="copyCsv">Copy CSV</button>
+      <button id="sendSheetBtn">Kirim ke spreadsheet</button>
     </div>
 
     <textarea id="rawData" placeholder="Paste data disini..."></textarea>
+
+    <div class="sheet-box">
+      <input id="sheetUrl" type="text" placeholder="Masukkan URL connector lokal (contoh: http://localhost:8765/append)" />
+      <button id="saveSheetUrlBtn" type="button">Simpan URL</button>
+    </div>
 
     <div class="toolbar">
       <span class="meta" id="meta">Belum ada data yang diparse.</span>
@@ -186,6 +215,11 @@
     const rowsEl = document.getElementById('rows');
     const metaEl = document.getElementById('meta');
     const csvBox = document.getElementById('csvBox');
+    const sheetUrlInput = document.getElementById('sheetUrl');
+    const SHEET_URL_KEY = 'afs_sheet_url';
+
+    const savedSheetUrl = localStorage.getItem(SHEET_URL_KEY) || 'http://localhost:8765/append';
+    sheetUrlInput.value = savedSheetUrl;
 
     const exampleText = `PesananPembeliProdukStatus pesananMetode pengirimanOpsi pengirimanTotal586737986582054030Sampel gratis10 mnt yang lalufarhanshop02051 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman StandarRp0586737846364571044Sampel gratis25 mnt yang laluseptisp___1 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman EkonomisRp0586737757143598502Sampel gratis31 mnt yang lalenspallspillproduk0241 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman StandarRp0586737712924952119Sampel gratis31 mnt yang laludulsfi31 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman StandarRp0586737712882156798Sampel gratis31 mnt yang lalucokelatkeju891 produkMenunggu pengirimanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T ExpressPengiriman StandarRp0586736829830694418Hari ini 08.09.23wiedyarie152 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2038626784Pengiriman EkonomisRp203.414586733366163048226Kamis 23.50.07mimi.lindayeni21 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2071176804Pengiriman EkonomisRp120.089586731999855936894Kamis 21.59.45mujib.bahtiar1 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2077246794Pengiriman besok sampaiRp108.533586729776655664731Kamis 19.58.45heypi.o1 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2089437614Pengiriman StandarRp112.949586724269796984024Kamis 19.24.28ayankxblingurah1 produkMenunggu pengambilanAtur pengiriman paling lambat 16:00 hari iniDikirim melalui platformJ&T Express, JY2002477624Pengiriman StandarRp110.677586724661586986323Kamis 14.04.32asmi66921 produkTerkirimDikirim melalui platformJ&T Express, JY2048002644Pengiriman besok sampaiRp115.978586724529568712414Sampel gratisKamis 13.52.15mimelpicks1 produkSedang transitDikirim melalui platformJ&T Express, JY2068492634Pengiriman EkonomisRp0586724497303569409Sampel gratisKamis 13.52.08apriliaarzky1 produkSedang transitDikirim melalui platformJ&T Express, JY2065802644Pengiriman besok sampaiRp0586724497303373190Sampel gratisKamis 13.52.08jeaniuslittlegoods1 produkSedang transitDikirim melalui platformJ&T Express, JY2028422644Pengiriman StandarRp0586724420362142842Sampel gratisKamis 11.21.16perintismudaa221 produkSedang transitDikirim melalui platformJ&T Express, JY2044652634Pengiriman EkonomisRp0586722273684325651Sampel gratisKamis 11.19.19abdllfaqih1 produkSedang transitDikirim melalui platformJ&T Express, JY2073830774Pengiriman StandarRp0586722196646168221Sampel gratisKamis 11.19.15cozycheckout_nevia1 produkSedang transitDikirim melalui platformJ&T Express, JY2027431464Pengiriman besok sampaiRp0586722182321702408Sampel gratisKamis 11.19.14ria.ira_1 produkSedang transitDikirim melalui platformJ&T Express, JY2025321464Pengiriman EkonomisRp0586722182304597290Sampel gratisKamis 11.19.13aarums121 produkSedang transitDikirim melalui platformJ&T Express, JY2009631464Pengiriman EkonomisRp0586722180762863402Sampel gratisKamis 11.19.09kolidah061 produkSedang transitDikirim melalui platformJ&T Express, JY2077340754Pengiriman StandarRp0586722216257029443Sampel gratisKamis 10.57.18nadir.shopp1 produkTerkirimDikirim melalui platformJ&T Express, JY2040261464Pengiriman StandarRp0586721910474114437Sampel gratisKamis 10.51.25elmusytaka01 produkSedang transitDikirim melalui platformJ&T Express, JY2012399903Pengiriman StandarRp0586721824147867498Sampel gratisKamis 10.30.48tazaka.beautyglow1 produkSedang transitDikirim melalui platformJ&T Express, JY2090119903Pengiriman StandarRp0586721374223042556Kamis 08.10.08r*************11 produkBelum DibayarDikirim melalui platformRp118.900586719533123011786Kamis 07.53.38buk.genta1 produkSedang transitDikirim melalui platformJ&T Express, JY2036548643Pengiriman EkonomisRp120.089586719267433317636Kamis 07.53.38ayazz_perizma1 produkTerkirimDikirim melalui platformJ&T Express, JY2014778633Pengiriman besok sampaiRp114.144586715010463335846Rabu 22.18.17erni785891 produkSedang transitDikirim melalui platformJ&T Express, JY2094628643Pengiriman EkonomisRp148.470586711525626971605Sampel gratisRabu 18.58.10superpromo1000_1 produkSedang transitDikirim melalui platformJ&T Express, JY2009539293Pengiriman StandarRp0586711521857144681Sampel gratisRabu 18.54.08hanicantik__1 produkSedang transitDikirim melalui platformJ&T Express, JY2046329293Pengiriman StandarRp0586702744665359411Rabu 11.35.33iesen.tjoeng1 produkTerkirimDikirim melalui platformJ&T Express, JY2043182573Pengiriman besok sampaiRp44.600586702571490935859Rabu 11.24.34i**********g1 produkTerkirimDikirim melalui platformJ&T Express, JY2067232573Pengiriman besok sampaiRp67.640586702326246901418Rabu 11.08.00c*********t1 produkSedang transitDikirim melalui platformJ&T Express, JY2011981513Pengiriman EkonomisRp111.000586702278742935388Rabu 11.02.29T***********n3 produkTerkirimDikirim melalui platformJ&T Express, JY2038251503Pengiriman StandarRp77.600586693418120087449Selasa 20.26.214****91 produkSedang transitDikirim melalui platformJ&T Express, JY2092020193Pengiriman EkonomisRp119.453586692017360832409Selasa 19.07.324****91 produkSedang transitDikirim melalui platformJ&T Express, JY2040470943Pengiriman EkonomisRp108.848586689342229873706Sampel gratisSelasa 16.03.07fannynurra1 produkTerkirimDikirim melalui platformJ&T Express, JY2060310953Pengiriman StandarRp0586685970892293589Selasa 12.52.10i********t1 produkSedang transitDikirim melalui platformJ&T Express, JY2026834222Pengiriman EkonomisRp119.685586684943055226480Sampel gratisSelasa 11.49.12spallspillllllllllllllll1 produkTerkirimDikirim melalui platformJ&T Express, JY2039763402Pengiriman StandarRp0586684393943369485Selasa 10.08.26vidimulyanto_1 produkTerkirimDikirim melalui platformJ&T Express, JY2085744232Pengiriman StandarRp0586683330747794699Sampel gratisSelasa 09.56.07syana_861 produkTerkirimDikirim melalui platformJ&T Express, JY2092223422Pengiriman StandarRp0586683116330255811Sampel gratisSelasa 09.39.28noorazizahsalsa1 produkSedang transitDikirim melalui platformJ&T Express, JY2003374222Pengiriman EkonomisRp0586682827659117727Sampel gratisSelasa 09.23.32mang.didin581 produkTerkirimDikirim melalui platformJ&T Express, JY2040921872Pengiriman besok sampaiRp0586682833425892547Sampel gratisSelasa 09.23.27intanandriani221 produkTerkirimDikirim melalui platformJ&T Express, JY2019281012Pengiriman StandarRp0586682849515898302Sampel gratisSelasa 09.23.27trandshop81 produkTerkirimDikirim melalui platformJ&T Express, JY2035491012Pengiriman StandarRp0586682826190062618Sampel gratisSelasa 09.23.23adminduk221 produkTerkirimDikirim melalui platformJ&T Express, JY2075491012Pengiriman StandarRp0586681875295208761Selasa 08.16.58A**********o3 produkTerkirimDikirim melalui platformJ&T Express, JY2071431022Pengiriman StandarRp77.600586680965718050294Selasa 06.58.45p*******a1 produkDibatalkanDikirim melalui platformRp218.540586680865894335655Selasa 06.45.51w*************r1 produkSedang transitDikirim melalui platformJ&T Express, JY2012071022Pengiriman EkonomisRp225.398`;
 
@@ -335,6 +369,47 @@
       } catch (error) {
         alert('Clipboard gagal dipakai. Silakan copy manual dari box CSV.');
       }
+    });
+
+    document.getElementById('saveSheetUrlBtn').addEventListener('click', () => {
+      const url = sheetUrlInput.value.trim();
+      if (!url) {
+        alert('Masukkan URL Apps Script Web App terlebih dahulu.');
+        return;
+      }
+      localStorage.setItem(SHEET_URL_KEY, url);
+      alert('URL spreadsheet berhasil disimpan.');
+    });
+
+    async function sendDataToSheet(entries) {
+      const url = sheetUrlInput.value.trim();
+      if (!url) {
+        alert('Masukkan URL connector lokal terlebih dahulu, misalnya http://localhost:8765/append.');
+        return;
+      }
+
+      if (!entries.length) {
+        alert('Belum ada data untuk dikirim.');
+        return;
+      }
+
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          mode: 'cors',
+          body: JSON.stringify({ rows: entries })
+        });
+        alert('Data berhasil dikirim ke spreadsheet via connector lokal.');
+      } catch (error) {
+        alert('Gagal mengirim data ke spreadsheet. Pastikan connector lokal sedang berjalan di http://localhost:8765/append.');
+      }
+    }
+
+    document.getElementById('sendSheetBtn').addEventListener('click', async () => {
+      const entries = parseEntries(rawData.value);
+      renderTable(entries);
+      await sendDataToSheet(entries);
     });
 
     rawData.value = exampleText;
