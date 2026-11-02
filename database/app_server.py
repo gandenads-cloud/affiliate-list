@@ -13,6 +13,11 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+try:
+    from .migrate import run_migrations
+except ImportError:
+    from migrate import run_migrations
+
 
 APP_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = Path(os.environ.get('AFS_DB_PATH', APP_DIR / 'database' / 'afs.db'))
@@ -44,6 +49,10 @@ def init_db():
     schema_path = APP_DIR / 'database' / 'schema.sql'
     with connect_db() as conn:
         conn.executescript(schema_path.read_text(encoding='utf-8'))
+
+    run_migrations(DB_PATH, quiet=True)
+
+    with connect_db() as conn:
         conn.execute(
             """
             INSERT OR IGNORE INTO creator_tracker_statuses (

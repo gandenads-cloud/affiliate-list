@@ -16,3 +16,6 @@ BELUM-MASUK.md
 database/*
 !database/*.py
 !database/schema.sql
+!database/migrations/
+database/migrations/*
+!database/migrations/*.sql
