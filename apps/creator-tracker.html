@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creator Tracker — AFS</title>
+  <style>
+    :root {
+      --bg:#0b1120; --panel:#111827; --panel2:#172033; --line:#2b3950;
+      --text:#e5e7eb; --muted:#94a3b8; --blue:#60a5fa; --green:#34d399;
+      --amber:#fbbf24; --red:#f87171; --sticky:#121b2c;
+    }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100vh; color:var(--text); background:var(--bg);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,sans-serif }
+    header { position:sticky; top:0; z-index:30; background:rgba(11,17,32,.96); border-bottom:1px solid var(--line); backdrop-filter:blur(12px) }
+    .top { display:flex; align-items:center; gap:14px; padding:12px 18px 10px }
+    h1 { margin:0; font-size:18px; white-space:nowrap }
+    nav { display:flex; gap:12px; margin-left:auto }
+    nav a { color:var(--muted); text-decoration:none; font-size:13px }
+    nav a:hover { color:var(--blue) }
+    .controls { display:grid; grid-template-columns:minmax(280px,1fr) repeat(4,minmax(130px,auto)) auto; gap:8px; padding:0 18px 12px }
+    .search { position:relative }
+    input,select,button { color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:9px; font:inherit }
+    input,select { min-height:40px; padding:8px 11px; outline:none }
+    input:focus,select:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(96,165,250,.12) }
+    .search input { width:100%; padding-left:38px; padding-right:58px; font-size:15px }
+    .search .icon { position:absolute; left:13px; top:10px; color:var(--muted); font-size:17px }
+    kbd { position:absolute; right:9px; top:9px; color:var(--muted); background:var(--panel2); border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:2px 6px; font:11px ui-monospace,monospace }
+    button { min-height:40px; padding:8px 12px; cursor:pointer; font-weight:650 }
+    button:hover { color:var(--blue); border-color:var(--blue) }
+    button:disabled { opacity:.45; cursor:not-allowed }
+    .summary { display:flex; gap:8px; padding:10px 18px; overflow:auto; background:var(--panel); border-bottom:1px solid var(--line) }
+    .chip { flex:0 0 auto; display:flex; gap:7px; align-items:baseline; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px }
+    .chip b { color:var(--text); font-size:14px }
+    .chip.total { border-color:rgba(96,165,250,.45); background:rgba(96,165,250,.08) }
+    .sheet { height:calc(100vh - 177px); overflow:auto; position:relative }
+    table { min-width:1465px; width:100%; border-collapse:separate; border-spacing:0; background:var(--bg) }
+    th,td { height:43px; padding:5px 8px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); text-align:left; background:var(--bg) }
+    th { position:sticky; top:0; z-index:12; height:38px; background:var(--panel); color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap }
+    tbody tr:hover td { background:#101a2b }
+    th.no,td.no { position:sticky; left:0; z-index:14; width:56px; min-width:56px; text-align:center; background:var(--sticky); color:var(--muted); font-variant-numeric:tabular-nums }
+    th.user,td.user { position:sticky; left:56px; z-index:14; width:210px; min-width:210px; background:var(--sticky); box-shadow:5px 0 8px rgba(0,0,0,.16) }
+    th.no,th.user { z-index:18; background:#172033 }
+    tbody tr:hover td.no,tbody tr:hover td.user { background:#18243a }
+    td.user a { color:#bfdbfe; text-decoration:none; font-weight:700 }
+    td.user a:hover { color:var(--blue); text-decoration:underline }
+    .entry-date { display:block; margin-top:1px; color:var(--muted); font-size:10px; font-weight:400 }
+    th.action,td.action { width:74px; min-width:74px; text-align:center }
+    .action-btn { min-height:28px; padding:3px 8px; border-radius:6px; color:#bfdbfe; background:#172554; border-color:#1d4ed8; font-size:11px; text-transform:lowercase }
+    th.phone { min-width:155px } th.notes { min-width:250px }
+    td.editable { padding:4px }
+    td.editable input { width:100%; min-height:33px; border-color:transparent; background:transparent; padding:5px 7px; border-radius:6px }
+    td.editable input:hover { border-color:var(--line); background:var(--panel) }
+    td.editable input:focus { border-color:var(--blue); background:var(--panel) }
+    th.check,td.check { width:66px; min-width:66px; text-align:center }
+    input[type=checkbox] { appearance:none; width:19px; height:19px; min-height:auto; margin:0; padding:0; border:2px solid #64748b; border-radius:4px; background:transparent; vertical-align:middle; cursor:pointer }
+    input[type=checkbox]:checked { background:#3b82f6; border-color:#3b82f6 }
+    input[type=checkbox]:checked::after { content:'✓'; display:block; color:white; font-size:14px; line-height:15px; text-align:center; font-weight:800 }
+    input[type=checkbox]:disabled { opacity:.45 }
+    .loading { position:absolute; inset:38px 0 0; z-index:20; display:grid; place-items:center; background:rgba(11,17,32,.62); color:#bfdbfe; backdrop-filter:blur(1px) }
+    .loading[hidden] { display:none }
+    .empty { padding:60px 20px; color:var(--muted); text-align:center; display:none }
+    footer { height:49px; display:flex; align-items:center; gap:8px; padding:7px 16px; background:var(--panel); border-top:1px solid var(--line) }
+    footer .page-info { color:var(--muted); margin-right:auto }
+    footer button { min-height:34px; padding:5px 11px }
+    .toast { position:fixed; right:18px; bottom:64px; z-index:100; max-width:360px; padding:11px 14px; border-radius:9px; color:#d1fae5; background:#064e3b; border:1px solid #10b981; box-shadow:0 12px 30px #0006; transform:translateY(16px); opacity:0; pointer-events:none; transition:.18s }
+    .toast.show { transform:translateY(0); opacity:1 }
+    .toast.error { color:#fee2e2; background:#7f1d1d; border-color:#ef4444 }
+    dialog { width:min(760px,94vw); padding:0; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:0 25px 70px #0009 }
+    dialog::backdrop { background:#020617b8; backdrop-filter:blur(3px) }
+    .modal-head { display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--line) }
+    .modal-head h2 { margin:0; font-size:17px }.modal-head .creator-label { color:var(--muted); font-size:12px }.modal-head .spacer { flex:1 }
+    .modal-head button { min-height:32px; padding:4px 9px }
+    .modal-body { padding:18px }
+    .modal-body label { display:block; margin-bottom:7px; color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase }
+    .link-row { display:flex; gap:8px }.link-row input { flex:1; min-width:0 }.link-row button { white-space:nowrap }
+    .modal-help { margin:8px 0 16px; color:var(--muted); font-size:12px }
+    .modal-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px }
+    .submissions { max-height:300px; overflow:auto; border:1px solid var(--line); border-radius:10px }
+    .submissions table { min-width:620px; font-size:12px }.submissions th { position:sticky }.submissions th,.submissions td { height:auto; padding:8px }
+    .submissions a { color:#93c5fd }.status-pill { display:inline-block; padding:3px 7px; border-radius:999px; font-size:10px; font-weight:800; text-transform:uppercase }
+    .status-pending { color:#fde68a; background:#78350f }.status-approved { color:#a7f3d0; background:#064e3b }.status-rejected { color:#fecaca; background:#7f1d1d }
+    .no-submissions { padding:24px; color:var(--muted); text-align:center }
+    @media (max-width:1050px) { .controls { grid-template-columns:1fr 1fr 1fr; } .search { grid-column:1/-1 } .sheet { height:calc(100vh - 225px) } }
+    @media (max-width:620px) { .top { padding-inline:12px } nav a:first-child { display:none } .controls { grid-template-columns:1fr 1fr; padding-inline:12px } .search { grid-column:1/-1 } .controls button { grid-column:1/-1 } .summary { padding-inline:12px } .sheet { height:calc(100vh - 273px) } th.user,td.user { width:160px; min-width:160px } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top">
+      <h1>Creator Tracker</h1>
+      <nav>
+        <a href="creator-entry.html">+ Input creator</a>
+        <a href="../index.html">Launcher</a>
+      </nav>
+    </div>
+    <div class="controls">
+      <div class="search">
+        <span class="icon">⌕</span>
+        <input type="search" id="search" autocomplete="off" placeholder="Cari username, nama, nomor WA, atau catatan…">
+        <kbd>Ctrl K</kbd>
+      </div>
+      <select id="scope" aria-label="Cakupan creator">
+        <option value="all" selected>Semua database</option>
+        <option value="entries" id="entryScopeOption">List creator masuk</option>
+      </select>
+      <select id="date" aria-label="Tanggal masuk"><option value="">Semua tanggal</option></select>
+      <select id="status" aria-label="Filter status">
+        <option value="">Semua status</option>
+        <option value="not_invited">Belum invite</option>
+        <option value="invited">Sudah invite</option>
+        <option value="deal">Sudah deal</option>
+        <option value="sample_requested">Req sampel</option>
+        <option value="shipped">Sudah kirim</option>
+        <option value="vt_posted">Sudah ada VT</option>
+      </select>
+      <select id="pageSize" aria-label="Jumlah baris">
+        <option value="50">50 baris</option>
+        <option value="100" selected>100 baris</option>
+        <option value="250">250 baris</option>
+        <option value="500">500 baris</option>
+      </select>
+      <button type="button" id="refresh">↻ Refresh</button>
+    </div>
+  </header>
+
+  <div class="summary">
+    <div class="chip total">Hasil <b id="sumTotal">0</b></div>
+    <div class="chip">Oke <b id="sumOke">0</b></div>
+    <div class="chip">Invite <b id="sumInvite">0</b></div>
+    <div class="chip">Deal <b id="sumDeal">0</b></div>
+    <div class="chip">Req sampel <b id="sumRequest">0</b></div>
+    <div class="chip">Kirim <b id="sumShip">0</b></div>
+    <div class="chip">Ada VT <b id="sumVt">0</b></div>
+  </div>
+
+  <div class="sheet" id="sheet">
+    <div class="loading" id="loading">Memuat creator…</div>
+    <table>
+      <thead><tr>
+        <th class="no">No</th><th class="user">Username</th><th class="action">Action</th><th class="phone">No. WA</th><th class="notes">Catatan</th>
+        <th class="check">Oke?</th><th class="check">Invite</th><th class="check">Deal</th>
+        <th class="check">Req Sampel</th><th class="check">Kirim</th>
+        <th class="check">VT1</th><th class="check">VT2</th><th class="check">VT3</th>
+        <th class="check">VT4</th><th class="check">VT5</th><th class="check">VT Winn</th>
+      </tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+    <div class="empty" id="empty">Tidak ada creator yang cocok.</div>
+  </div>
+
+  <footer>
+    <span class="page-info" id="pageInfo">Halaman 1</span>
+    <button type="button" id="first">« Awal</button>
+    <button type="button" id="prev">‹ Sebelumnya</button>
+    <button type="button" id="next">Berikutnya ›</button>
+  </footer>
+  <dialog id="actionDialog">
+    <div class="modal-head">
+      <div><h2>Creator action</h2><div class="creator-label" id="actionCreator">—</div></div>
+      <span class="spacer"></span>
+      <button type="button" id="actionClose">Tutup</button>
+    </div>
+    <div class="modal-body">
+      <label for="submissionLink">Link pengiriman VT & spark code</label>
+      <div class="link-row">
+        <input id="submissionLink" type="text" readonly>
+        <button type="button" id="copySubmissionLink">Copy link</button>
+      </div>
+      <p class="modal-help">Kirim link ini hanya ke creator terkait. Link lokal hanya dapat dibuka dari perangkat yang bisa mengakses server AFS.</p>
+      <div class="modal-actions">
+        <button type="button" id="openSubmissionLink">Buka form</button>
+        <button type="button" id="regenerateSubmissionLink">Ganti link</button>
+      </div>
+      <label>Kiriman creator</label>
+      <div class="submissions" id="submissionHistory"><div class="no-submissions">Belum ada VT yang dikirim.</div></div>
+    </div>
+  </dialog>
+  <div class="toast" id="toast"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const STATUS_FIELDS=['oke','invite','deal','req_sampel','kirim','vt1','vt2','vt3','vt4','vt5','vt_winn'];
+  const state={offset:0,total:0,pages:1,page:1,rows:[],request:0,actionId:null};
+  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const attr=value=>esc(value).replace(/\n/g,'&#10;');
+  let toastTimer, searchTimer;
+
+  async function readApi(response){
+    const contentType=response.headers.get('content-type')||'';
+    if(!contentType.includes('application/json')){
+      throw new Error('API Creator Tracker belum aktif. Jalankan ulang ./run-local.sh lalu refresh halaman.');
+    }
+    return response.json();
+  }
+
+  function toast(message,error=false){
+    clearTimeout(toastTimer); const box=$('toast'); box.textContent=message;
+    box.className=`toast show${error?' error':''}`;
+    toastTimer=setTimeout(()=>box.className='toast',2300);
+  }
+
+  async function loadDates(){
+    try{
+      const response=await fetch('/api/creator-list/dates');
+      if(!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data=await readApi(response); const selected=$('date').value;
+      const entryTotal=data.dates.reduce((sum,row)=>sum+Number(row.count||0),0);
+      $('entryScopeOption').textContent=`List creator masuk (${entryTotal.toLocaleString('id-ID')})`;
+      $('date').innerHTML='<option value="">Semua tanggal</option>'+data.dates.map(row=>
+        `<option value="${esc(row.entry_date)}">${esc(row.entry_date)} (${row.count})</option>`).join('');
+      $('date').value=selected;
+    }catch(error){ toast('Gagal memuat daftar tanggal',true); }
+  }
+
+  function params(){
+    const p=new URLSearchParams({scope:$('scope').value,limit:$('pageSize').value,offset:String(state.offset)});
+    if($('search').value.trim()) p.set('q',$('search').value.trim());
+    if($('date').value) p.set('date',$('date').value);
+    if($('status').value) p.set('status',$('status').value);
+    return p;
+  }
+
+  async function loadData(reset=false){
+    if(reset) state.offset=0;
+    const request=++state.request; $('loading').hidden=false;
+    try{
+      const response=await fetch(`/api/creator-tracker?${params()}`);
+      const data=await readApi(response);
+      if(!response.ok) throw new Error(data.message||`HTTP ${response.status}`);
+      if(request!==state.request) return;
+      Object.assign(state,{rows:data.rows,total:data.total,pages:data.pages,page:data.page});
+      render(data.summary);
+    }catch(error){
+      if(request!==state.request) return;
+      state.rows=[]; state.total=0; render({});
+      toast(`Gagal memuat: ${error.message}`,true);
+    }finally{ if(request===state.request) $('loading').hidden=true; }
+  }
+
+  function render(summary={}){
+    $('sumTotal').textContent=state.total.toLocaleString('id-ID');
+    $('sumOke').textContent=(summary.oke||0).toLocaleString('id-ID');
+    $('sumInvite').textContent=(summary.invited||0).toLocaleString('id-ID');
+    $('sumDeal').textContent=(summary.deal||0).toLocaleString('id-ID');
+    $('sumRequest').textContent=(summary.sample_requested||0).toLocaleString('id-ID');
+    $('sumShip').textContent=(summary.shipped||0).toLocaleString('id-ID');
+    $('sumVt').textContent=(summary.vt_posted||0).toLocaleString('id-ID');
+    $('empty').style.display=state.rows.length?'none':'block';
+    $('body').innerHTML=state.rows.map((row,index)=>{
+      const profileUrl=`https://www.tiktok.com/@${encodeURIComponent(row.username)}`;
+      const boxes=STATUS_FIELDS.map(field=>`<td class="check"><input type="checkbox" data-id="${row.affiliator_id}" data-field="${field}" aria-label="${field} ${attr(row.username)}" ${Number(row[field])?'checked':''}></td>`).join('');
+      return `<tr data-id="${row.affiliator_id}">
+        <td class="no">${state.offset+index+1}</td>
+        <td class="user"><a href="${attr(profileUrl)}" target="_blank" rel="noopener">@${esc(row.username)}</a>${row.entry_date?`<span class="entry-date">Masuk ${esc(row.entry_date)}</span>`:''}</td>
+        <td class="action"><button type="button" class="action-btn" data-action-id="${row.affiliator_id}">action</button></td>
+        <td class="editable"><input data-id="${row.affiliator_id}" data-field="phone" data-original="${attr(row.no_wa)}" value="${attr(row.no_wa)}" placeholder="Nomor WA"></td>
+        <td class="editable"><input data-id="${row.affiliator_id}" data-field="notes" data-original="${attr(row.catatan)}" value="${attr(row.catatan)}" placeholder="Tambahkan catatan"></td>
+        ${boxes}</tr>`;
+    }).join('');
+    const start=state.total?state.offset+1:0, end=Math.min(state.offset+Number($('pageSize').value),state.total);
+    $('pageInfo').textContent=`${start.toLocaleString('id-ID')}–${end.toLocaleString('id-ID')} dari ${state.total.toLocaleString('id-ID')} • Halaman ${state.page}/${state.pages}`;
+    $('first').disabled=state.offset===0; $('prev').disabled=state.offset===0;
+    $('next').disabled=state.offset+Number($('pageSize').value)>=state.total;
+  }
+
+  async function patch(id,field,value){
+    const response=await fetch(`/api/creator-tracker/${id}`,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({field,value})
+    });
+    const data=await readApi(response);
+    if(!response.ok||!data.ok) throw new Error(data.message||`HTTP ${response.status}`);
+    return data;
+  }
+
+  function renderSubmissions(rows){
+    if(!rows.length){ $('submissionHistory').innerHTML='<div class="no-submissions">Belum ada VT yang dikirim.</div>'; return; }
+    $('submissionHistory').innerHTML=`<table><thead><tr><th>Waktu</th><th>URL VT</th><th>Spark code</th><th>Status</th></tr></thead><tbody>${rows.map(row=>`<tr>
+      <td>${esc(row.submitted_at||'')}</td>
+      <td><a href="${attr(row.vt_url)}" target="_blank" rel="noopener">Buka VT</a></td>
+      <td>${esc(row.spark_code||'—')}</td>
+      <td><span class="status-pill status-${esc(row.status)}">${esc(row.status)}</span></td>
+    </tr>`).join('')}</tbody></table>`;
+  }
+
+  async function openAction(id,regenerate=false){
+    state.actionId=Number(id); const dialog=$('actionDialog');
+    if(!dialog.open) dialog.showModal();
+    $('actionCreator').textContent='Memuat…'; $('submissionLink').value='';
+    $('submissionHistory').innerHTML='<div class="no-submissions">Memuat riwayat…</div>';
+    try{
+      const response=await fetch(`/api/creator-action/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({regenerate})});
+      const data=await readApi(response); if(!response.ok||!data.ok) throw new Error(data.message||`HTTP ${response.status}`);
+      $('actionCreator').textContent=`@${data.username}`;
+      $('submissionLink').value=new URL(data.submission_path,location.origin).href;
+      renderSubmissions(data.submissions||[]);
+      if(regenerate) toast('Link baru berhasil dibuat');
+    }catch(error){ $('actionCreator').textContent='Gagal memuat'; renderSubmissions([]); toast(error.message,true); }
+  }
+
+  $('body').addEventListener('click',event=>{
+    const button=event.target.closest('.action-btn'); if(button) openAction(button.dataset.actionId);
+  });
+  $('actionClose').onclick=()=>$('actionDialog').close();
+  $('actionDialog').addEventListener('click',event=>{ if(event.target===$('actionDialog')) $('actionDialog').close(); });
+  $('copySubmissionLink').onclick=async()=>{
+    const input=$('submissionLink'); if(!input.value) return;
+    try{ await navigator.clipboard.writeText(input.value); toast('Link berhasil disalin'); }
+    catch{ input.select(); document.execCommand('copy'); toast('Link berhasil disalin'); }
+  };
+  $('openSubmissionLink').onclick=()=>{ if($('submissionLink').value) window.open($('submissionLink').value,'_blank','noopener'); };
+  $('regenerateSubmissionLink').onclick=()=>{
+    if(state.actionId&&confirm('Link lama akan langsung tidak berlaku. Buat link baru?')) openAction(state.actionId,true);
+  };
+
+  $('body').addEventListener('change',async event=>{
+    const checkbox=event.target.closest('input[type=checkbox]'); if(!checkbox) return;
+    const previous=!checkbox.checked; checkbox.disabled=true;
+    try{
+      await patch(checkbox.dataset.id,checkbox.dataset.field,checkbox.checked);
+      toast('Status tersimpan'); setTimeout(()=>loadData(false),180);
+    }catch(error){ checkbox.checked=previous; toast(`Gagal menyimpan: ${error.message}`,true); }
+    finally{ checkbox.disabled=false; }
+  });
+
+  async function saveText(input){
+    if(input.dataset.saving==='1'||input.value===input.dataset.original) return;
+    input.dataset.saving='1'; input.disabled=true;
+    try{
+      const data=await patch(input.dataset.id,input.dataset.field,input.value);
+      input.value=data.value; input.dataset.original=data.value; toast('Perubahan tersimpan');
+    }catch(error){ input.value=input.dataset.original; toast(`Gagal menyimpan: ${error.message}`,true); }
+    finally{ input.disabled=false; delete input.dataset.saving; }
+  }
+  $('body').addEventListener('focusout',event=>{ const input=event.target.closest('td.editable input'); if(input) saveText(input); });
+  $('body').addEventListener('keydown',event=>{
+    const input=event.target.closest('td.editable input'); if(!input) return;
+    if(event.key==='Enter'){ event.preventDefault(); input.blur(); }
+    if(event.key==='Escape'){ input.value=input.dataset.original; input.blur(); }
+  });
+
+  $('search').addEventListener('input',()=>{ clearTimeout(searchTimer); searchTimer=setTimeout(()=>loadData(true),180); });
+  ['scope','date','status','pageSize'].forEach(id=>$(id).addEventListener('change',()=>{
+    if(id==='scope'&&$('scope').value==='all') $('date').value=''; loadData(true);
+  }));
+  $('refresh').onclick=async()=>{ await loadDates(); await loadData(false); toast('Data diperbarui'); };
+  $('first').onclick=()=>{ state.offset=0; loadData(); $('sheet').scrollTop=0; };
+  $('prev').onclick=()=>{ state.offset=Math.max(0,state.offset-Number($('pageSize').value)); loadData(); $('sheet').scrollTop=0; };
+  $('next').onclick=()=>{ state.offset+=Number($('pageSize').value); loadData(); $('sheet').scrollTop=0; };
+  document.addEventListener('keydown',event=>{
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){ event.preventDefault(); $('search').focus(); $('search').select(); }
+    if(event.key==='Escape'&&document.activeElement===$('search')){ $('search').value=''; loadData(true); $('search').blur(); }
+  });
+
+  (async()=>{ await loadDates(); await loadData(true); })();
+</script>
+</body>
+</html>

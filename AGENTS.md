@@ -39,3 +39,12 @@ Setiap data yang diparse harus menghasilkan kolom berikut:
 ## Catatan penting
 - Jika ada format data baru, perbaiki parsing dengan cara yang kompatibel, bukan mengganti logika lama.
 - Jangan membuang data yang valid hanya karena pola baru muncul.
+
+## Rule penyimpanan data baru ke CSV dan DB
+- Sebelum menambahkan data baru ke `username_produk.csv` atau database SQLite, selalu cek duplikasi terlebih dahulu.
+- Kriteria duplikasi yang dipakai: kombinasi `username + produk`.
+- Jika `username` dan `produk` sudah ada, jangan di-append lagi; skip tanpa menimpa data lama.
+- Data baru harus disimpan ke CSV dan database dalam satu flow yang sama agar tidak ada mismatch antara file dan DB.
+- Gunakan tahap validasi: cek existing rows -> filter unique -> append ke CSV -> insert ke tabel yang relevan di database.
+- Simpan status terkini seperti `Dalam Pengiriman`, `Pending`, atau `Terkirim` tanpa mengganti record lama yang sudah valid kecuali memang ada update status resmi.
+- Jika data sudah pernah masuk, cukup catat sebagai duplikat dan lanjut ke data berikutnya, bukan mengulang insert.

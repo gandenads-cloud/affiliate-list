@@ -10,3 +10,9 @@ BELUM-MASUK.md
 # Folder kerja, kecuali apps/
 */
 !apps/
+
+# Kode database boleh dilacak; file data/database tetap lokal
+!database/
+database/*
+!database/*.py
+!database/schema.sql

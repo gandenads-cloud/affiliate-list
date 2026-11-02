@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Input List Creator — AFS</title>
+  <style>
+    :root {
+      --bg:#0b1120; --panel:#111827; --panel2:#172033; --line:#2b3950;
+      --text:#e5e7eb; --muted:#94a3b8; --blue:#60a5fa; --green:#34d399;
+      --amber:#fbbf24; --red:#f87171; --shadow:rgba(0,0,0,.22);
+    }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100vh; background:linear-gradient(145deg,#0b1120,#111827 60%,#0f172a);
+      color:var(--text); font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif }
+    header { position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:14px;
+      padding:14px 24px; background:rgba(11,17,32,.92); border-bottom:1px solid var(--line); backdrop-filter:blur(12px) }
+    header h1 { margin:0; font-size:18px }
+    header a { color:var(--muted); text-decoration:none }
+    header a:hover { color:var(--blue) }
+    main { width:min(1480px,100%); margin:auto; padding:24px; display:grid; grid-template-columns:minmax(360px,520px) 1fr; gap:20px }
+    .card { background:rgba(17,24,39,.9); border:1px solid var(--line); border-radius:16px;
+      box-shadow:0 14px 30px var(--shadow); overflow:hidden }
+    .card-head { padding:18px 20px; border-bottom:1px solid var(--line) }
+    .card-head h2 { margin:0 0 4px; font-size:17px }
+    .card-head p { margin:0; color:var(--muted); font-size:13px }
+    .card-body { padding:20px }
+    label { display:block; color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:7px }
+    input,select,textarea { width:100%; color:var(--text); background:var(--bg); border:1px solid var(--line);
+      border-radius:9px; padding:10px 12px; font:inherit; outline:none }
+    input:focus,select:focus,textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(96,165,250,.12) }
+    textarea { min-height:260px; resize:vertical; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:13px }
+    .field { margin-bottom:16px }
+    .hint { margin:7px 0 0; color:var(--muted); font-size:12px }
+    .actions,.toolbar { display:flex; gap:9px; flex-wrap:wrap; align-items:center }
+    button { border:1px solid var(--line); border-radius:9px; padding:9px 13px; color:var(--text);
+      background:var(--panel2); font:inherit; font-weight:650; cursor:pointer }
+    button:hover { border-color:var(--blue); color:var(--blue) }
+    button.primary { background:linear-gradient(135deg,#3b82f6,#2563eb); border-color:#3b82f6; color:white }
+    button.primary:hover { color:white; filter:brightness(1.08) }
+    button:disabled { opacity:.5; cursor:not-allowed }
+    .message { display:none; margin-top:16px; padding:12px 14px; border-radius:10px; border:1px solid var(--line) }
+    .message.show { display:block }
+    .message.ok { color:#a7f3d0; background:rgba(52,211,153,.09); border-color:rgba(52,211,153,.3) }
+    .message.err { color:#fecaca; background:rgba(248,113,113,.09); border-color:rgba(248,113,113,.3) }
+    .message.info { color:#bfdbfe; background:rgba(96,165,250,.09); border-color:rgba(96,165,250,.3) }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px }
+    .stat { padding:10px; border:1px solid var(--line); border-radius:10px; background:var(--bg) }
+    .stat b { display:block; font-size:19px; color:var(--blue) }
+    .stat span { color:var(--muted); font-size:11px }
+    .preview { margin-top:16px; max-height:260px; overflow:auto; border:1px solid var(--line); border-radius:10px }
+    .history { min-width:0 }
+    .toolbar { padding:14px 16px; border-bottom:1px solid var(--line) }
+    .toolbar input { min-width:170px; flex:1 }
+    .toolbar select { width:auto; min-width:150px }
+    .table-wrap { overflow:auto; max-height:calc(100vh - 195px) }
+    table { width:100%; border-collapse:collapse; white-space:nowrap }
+    th,td { padding:9px 11px; text-align:left; border-bottom:1px solid var(--line) }
+    th { position:sticky; top:0; z-index:2; background:#111827; color:var(--muted); font-size:11px;
+      text-transform:uppercase; letter-spacing:.04em }
+    tbody tr:hover { background:rgba(96,165,250,.06) }
+    td.notes { white-space:normal; min-width:180px; max-width:320px }
+    .username { font-weight:700; color:#bfdbfe }
+    .count { margin-left:auto; color:var(--muted); font-size:12px }
+    .empty { padding:40px 16px; text-align:center; color:var(--muted) }
+    code { color:#bfdbfe; background:var(--bg); border:1px solid var(--line); border-radius:5px; padding:1px 5px }
+    @media (max-width:960px) { main { grid-template-columns:1fr; padding:14px } .table-wrap { max-height:none } }
+    @media (max-width:520px) { header { padding:12px 14px } .stats { grid-template-columns:repeat(2,1fr) } .card-body { padding:15px } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="../index.html">← Launcher</a>
+    <h1>Input List Creator</h1>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="card-head">
+        <h2>Masukkan creator</h2>
+        <p>Data disimpan ke SQLite dan dikelompokkan berdasarkan tanggal masuk.</p>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label for="entryDate">Tanggal masuk</label>
+          <input type="date" id="entryDate" required>
+        </div>
+        <div class="field">
+          <label for="creatorInput">List creator</label>
+          <textarea id="creatorInput" spellcheck="false" placeholder="username&#10;@username_kedua&#10;username_ketiga,Nama Creator,08123456789,Catatan&#10;&#10;Bisa juga paste langsung dari Google Sheets (tab-separated)."></textarea>
+          <p class="hint">Urutan kolom: <code>username</code>, nama, nomor WA, catatan. Header boleh disertakan. URL profil TikTok juga diterima.</p>
+        </div>
+        <div class="actions">
+          <button type="button" id="previewBtn">Preview</button>
+          <button type="button" id="saveBtn" class="primary">Simpan ke database</button>
+          <button type="button" id="clearBtn">Bersihkan</button>
+        </div>
+        <div id="message" class="message"></div>
+        <div class="stats" id="previewStats" hidden>
+          <div class="stat"><b id="validCount">0</b><span>Creator valid</span></div>
+          <div class="stat"><b id="duplicateCount">0</b><span>Duplikat input</span></div>
+          <div class="stat"><b id="invalidCount">0</b><span>Baris kosong/invalid</span></div>
+        </div>
+        <div class="preview" id="previewWrap" hidden>
+          <table>
+            <thead><tr><th>Username</th><th>Nama</th><th>WA</th><th>Catatan</th></tr></thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card history">
+      <div class="card-head">
+        <h2>Riwayat creator masuk</h2>
+        <p>Gunakan filter tanggal untuk melihat batch list yang pernah disimpan.</p>
+      </div>
+      <div class="toolbar">
+        <select id="dateFilter"><option value="">Semua tanggal</option></select>
+        <input type="search" id="searchInput" placeholder="Cari username, nama, WA, catatan…">
+        <button type="button" id="refreshBtn">Refresh</button>
+        <button type="button" id="exportBtn">Export CSV</button>
+        <span class="count" id="historyCount">0 creator</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tanggal masuk</th><th>Username</th><th>Nama</th><th>WA</th><th>Catatan</th></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+        <div class="empty" id="historyEmpty">Belum ada list creator yang disimpan.</div>
+      </div>
+    </section>
+  </main>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[char]);
+  const today = new Date();
+  const localToday = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  $('entryDate').value = localToday;
+  let parsedRows = [];
+  let historyRows = [];
+
+  async function readApi(response) {
+    const contentType=response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('API database belum aktif. Jalankan ulang ./run-local.sh lalu refresh halaman.');
+    }
+    return response.json();
+  }
+
+  function showMessage(text, type='info') {
+    const box = $('message');
+    box.className = `message show ${type}`;
+    box.innerHTML = text;
+  }
+
+  function parseDelimited(text) {
+    text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    const firstLine = text.split('\n').find(line => line.trim()) || '';
+    if (firstLine.includes('\t')) {
+      return text.split('\n').filter(line => line.trim()).map(line => line.split('\t').map(cell => cell.trim()));
+    }
+    const rows=[]; let row=[], field='', quoted=false;
+    for (let i=0; i<text.length; i++) {
+      const char=text[i];
+      if (quoted) {
+        if (char==='"') {
+          if (text[i+1]==='"') { field+='"'; i++; } else quoted=false;
+        } else field+=char;
+      } else if (char==='"') quoted=true;
+      else if (char===',') { row.push(field.trim()); field=''; }
+      else if (char==='\n') { row.push(field.trim()); if (row.some(Boolean)) rows.push(row); row=[]; field=''; }
+      else field+=char;
+    }
+    row.push(field.trim());
+    if (row.some(Boolean)) rows.push(row);
+    return rows;
+  }
+
+  function normalizeHeader(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  }
+
+  function parseCreatorInput() {
+    const matrix = parseDelimited($('creatorInput').value);
+    const aliases = {
+      username:['username','handle','user','akun','creator'],
+      creator_name:['nama','nama_creator','nama_kreator','creator_name'],
+      phone:['wa','no_wa','nomor_wa','phone','nomor'],
+      notes:['catatan','notes','note','keterangan']
+    };
+    let indexes = {username:0, creator_name:1, phone:2, notes:3};
+    let start = 0;
+    if (matrix.length) {
+      const header = matrix[0].map(normalizeHeader);
+      const usernameIndex = header.findIndex(cell => aliases.username.includes(cell));
+      if (usernameIndex >= 0) {
+        start = 1;
+        for (const [field, names] of Object.entries(aliases)) {
+          const index = header.findIndex(cell => names.includes(cell));
+          indexes[field] = index;
+        }
+      }
+    }
+
+    const rows=[]; const seen=new Set(); let duplicate=0, invalid=0;
+    for (const cells of matrix.slice(start)) {
+      const get = field => indexes[field] >= 0 ? String(cells[indexes[field]] || '').trim() : '';
+      let username = get('username').replace(/^https?:\/\/(?:www\.)?tiktok\.com\/@/i, '').split(/[/?]/)[0].replace(/^@/, '').trim();
+      if (!/^[A-Za-z0-9._]{1,64}$/.test(username)) { invalid++; continue; }
+      const key=username.toLowerCase();
+      if (seen.has(key)) { duplicate++; continue; }
+      seen.add(key);
+      rows.push({username, creator_name:get('creator_name'), phone:get('phone'), notes:get('notes')});
+    }
+    return {rows, duplicate, invalid};
+  }
+
+  function preview() {
+    const result = parseCreatorInput();
+    parsedRows = result.rows;
+    $('validCount').textContent = result.rows.length;
+    $('duplicateCount').textContent = result.duplicate;
+    $('invalidCount').textContent = result.invalid;
+    $('previewStats').hidden = false;
+    $('previewWrap').hidden = !result.rows.length;
+    $('previewBody').innerHTML = result.rows.slice(0, 100).map(row => `<tr>
+      <td class="username">@${esc(row.username)}</td><td>${esc(row.creator_name)}</td>
+      <td>${esc(row.phone)}</td><td class="notes">${esc(row.notes)}</td></tr>`).join('');
+    if (!result.rows.length) showMessage('Belum ada username valid untuk disimpan.', 'err');
+    else showMessage(`Preview siap: <b>${result.rows.length}</b> creator valid${result.rows.length > 100 ? ' (100 pertama ditampilkan)' : ''}.`, 'info');
+    return result;
+  }
+
+  async function save() {
+    const result = preview();
+    if (!result.rows.length) return;
+    if (!$('entryDate').value) { showMessage('Pilih tanggal masuk terlebih dahulu.', 'err'); return; }
+    const button=$('saveBtn'); button.disabled=true; button.textContent='Menyimpan…';
+    try {
+      const response = await fetch('/api/creator-list', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({entry_date:$('entryDate').value, rows:result.rows})
+      });
+      const data = await readApi(response);
+      if (!response.ok || !data.ok) throw new Error(data.message || `HTTP ${response.status}`);
+      showMessage(
+        `<b>${data.saved} creator tersimpan</b> untuk ${esc(data.entry_date)}. ` +
+        `${data.new_creators} creator baru, ${data.completed_creators} data lama dilengkapi, ` +
+        `${data.duplicate_existing + data.duplicate_input} duplikat dilewati` +
+        `${data.invalid.length ? `, ${data.invalid.length} invalid` : ''}.`, 'ok'
+      );
+      $('dateFilter').dataset.pending = data.entry_date;
+      await loadDates();
+      $('dateFilter').value = data.entry_date;
+      await loadHistory();
+    } catch (error) {
+      showMessage(`Gagal menyimpan: ${esc(error.message)}. Pastikan aplikasi dijalankan lewat <code>./run-local.sh</code>.`, 'err');
+    } finally { button.disabled=false; button.textContent='Simpan ke database'; }
+  }
+
+  async function loadDates() {
+    const response = await fetch('/api/creator-list/dates');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await readApi(response);
+    const selected = $('dateFilter').dataset.pending || $('dateFilter').value;
+    $('dateFilter').innerHTML = '<option value="">Semua tanggal</option>' + data.dates.map(item =>
+      `<option value="${esc(item.entry_date)}">${esc(item.entry_date)} (${item.count})</option>`
+    ).join('');
+    $('dateFilter').value = selected;
+    delete $('dateFilter').dataset.pending;
+  }
+
+  async function loadHistory() {
+    const params = new URLSearchParams();
+    if ($('dateFilter').value) params.set('date', $('dateFilter').value);
+    if ($('searchInput').value.trim()) params.set('q', $('searchInput').value.trim());
+    try {
+      const response = await fetch(`/api/creator-list?${params}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await readApi(response); historyRows=data.rows;
+      $('historyCount').textContent = `${data.count.toLocaleString('id-ID')} creator`;
+      $('historyEmpty').hidden = Boolean(data.rows.length);
+      $('historyBody').innerHTML = data.rows.map(row => `<tr>
+        <td>${esc(row.entry_date)}</td><td class="username">@${esc(row.username)}</td>
+        <td>${esc(row.creator_name)}</td><td>${esc(row.phone)}</td><td class="notes">${esc(row.notes)}</td>
+      </tr>`).join('');
+    } catch (error) {
+      $('historyEmpty').hidden=false;
+      $('historyEmpty').innerHTML=`API database belum aktif.<br><small>Jalankan <code>./run-local.sh</code>.</small>`;
+      $('historyBody').innerHTML=''; $('historyCount').textContent='offline';
+    }
+  }
+
+  function csvCell(value) {
+    const text=String(value ?? '');
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g,'""')}"` : text;
+  }
+  function exportCsv() {
+    if (!historyRows.length) { showMessage('Tidak ada data riwayat untuk diexport.', 'err'); return; }
+    const header=['tanggal_masuk','username','nama_creator','no_wa','catatan'];
+    const csv='\uFEFF'+[header, ...historyRows.map(row => [row.entry_date,row.username,row.creator_name,row.phone,row.notes])]
+      .map(row => row.map(csvCell).join(',')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob);
+    const link=document.createElement('a'); link.href=url;
+    link.download=`creator-list-${$('dateFilter').value || 'semua-tanggal'}.csv`; link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  $('previewBtn').onclick=preview;
+  $('saveBtn').onclick=save;
+  $('clearBtn').onclick=()=>{ $('creatorInput').value=''; parsedRows=[]; $('previewStats').hidden=true; $('previewWrap').hidden=true; $('message').className='message'; };
+  $('dateFilter').onchange=loadHistory;
+  $('refreshBtn').onclick=async()=>{ await loadDates(); await loadHistory(); };
+  $('exportBtn').onclick=exportCsv;
+  let searchTimer;
+  $('searchInput').oninput=()=>{ clearTimeout(searchTimer); searchTimer=setTimeout(loadHistory,250); };
+
+  (async()=>{ try { await loadDates(); await loadHistory(); } catch { await loadHistory(); } })();
+</script>
+</body>
+</html>

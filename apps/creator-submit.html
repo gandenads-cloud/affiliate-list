@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kirim VT & Spark Code</title>
+  <style>
+    :root { --bg:#f4f7fb; --card:#fff; --line:#dbe3ef; --text:#172033; --muted:#64748b; --blue:#2563eb; --green:#059669; --red:#dc2626 }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100vh; padding:24px 16px; display:grid; place-items:center; color:var(--text); background:radial-gradient(circle at top,#dbeafe 0,#f4f7fb 42%); font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif }
+    main { width:min(520px,100%) }
+    .brand { display:flex; align-items:center; justify-content:center; gap:9px; margin-bottom:14px; color:#1e3a8a; font-weight:800 }
+    .logo { display:grid; place-items:center; width:34px; height:34px; color:white; background:linear-gradient(135deg,#3b82f6,#1d4ed8); border-radius:10px }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:26px; box-shadow:0 20px 55px rgba(30,64,175,.13) }
+    h1 { margin:0 0 7px; font-size:25px; letter-spacing:-.025em }
+    .intro { margin:0 0 22px; color:var(--muted) }
+    .creator { display:inline-block; color:#1d4ed8; font-weight:750 }
+    label { display:block; margin:0 0 7px; font-size:13px; font-weight:750 }
+    .optional { color:var(--muted); font-weight:500 }
+    .field { margin-bottom:18px }
+    input { width:100%; min-height:48px; padding:11px 13px; color:var(--text); background:#fff; border:1px solid var(--line); border-radius:11px; font:inherit; outline:none }
+    input:focus { border-color:var(--blue); box-shadow:0 0 0 4px rgba(37,99,235,.1) }
+    .hint { margin:7px 0 0; color:var(--muted); font-size:12px }
+    button { width:100%; min-height:49px; border:0; border-radius:11px; color:white; background:linear-gradient(135deg,#3b82f6,#2563eb); font:inherit; font-weight:800; cursor:pointer }
+    button:hover { filter:brightness(1.05) } button:disabled { opacity:.55; cursor:not-allowed }
+    .message { display:none; margin:0 0 18px; padding:12px 14px; border-radius:10px; font-size:14px }
+    .message.show { display:block }.message.error { color:#991b1b; background:#fee2e2; border:1px solid #fecaca }
+    .success { display:none; text-align:center; padding:8px 0 }
+    .success.show { display:block }
+    .check { display:grid; place-items:center; width:58px; height:58px; margin:0 auto 14px; color:white; background:var(--green); border-radius:50%; font-size:30px; font-weight:800 }
+    .success h2 { margin:0 0 8px }.success p { margin:0 0 20px; color:var(--muted) }
+    .success button { color:var(--blue); background:#eff6ff; border:1px solid #bfdbfe }
+    .privacy { margin:14px 4px 0; color:var(--muted); text-align:center; font-size:11px }
+    .loading { text-align:center; color:var(--muted); padding:24px 0 }
+    @media(max-width:480px){ body{padding:14px}.card{padding:21px 18px;border-radius:16px}h1{font-size:22px} }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand"><span class="logo">A</span> AFS Creator Submission</div>
+    <section class="card">
+      <div class="loading" id="loading">Memeriksa link…</div>
+      <div id="content" hidden>
+        <h1>Kirim VT & Spark Code</h1>
+        <p class="intro">Halo <span class="creator" id="creator"></span>, silakan kirim URL video TikTok kamu. Spark code boleh dikosongkan jika belum tersedia.</p>
+        <div class="message" id="message"></div>
+        <form id="form">
+          <div class="field">
+            <label for="vtUrl">URL video TikTok</label>
+            <input id="vtUrl" type="text" inputmode="url" autocomplete="url" placeholder="https://www.tiktok.com/@username/video/…" required>
+            <p class="hint">Buka video TikTok → Bagikan → Salin tautan.</p>
+          </div>
+          <div class="field">
+            <label for="sparkCode">Spark code <span class="optional">(opsional)</span></label>
+            <input id="sparkCode" type="text" autocomplete="off" placeholder="Masukkan kode otorisasi iklan">
+            <p class="hint">Kamu bisa mengirim URL terlebih dahulu dan memperbarui spark code nanti.</p>
+          </div>
+          <button type="submit" id="submitBtn">Kirim sekarang</button>
+        </form>
+        <div class="success" id="success">
+          <div class="check">✓</div>
+          <h2>Berhasil dikirim</h2>
+          <p>Data VT masuk dan menunggu pengecekan tim.</p>
+          <button type="button" id="sendAnother">Kirim VT lainnya</button>
+        </div>
+      </div>
+    </section>
+    <p class="privacy">Link ini khusus untuk akun kamu. Jangan membagikannya ke creator lain.</p>
+  </main>
+
+<script>
+  const $=id=>document.getElementById(id);
+  const token=new URLSearchParams(location.search).get('token')||'';
+  async function readApi(response){
+    const type=response.headers.get('content-type')||'';
+    if(!type.includes('application/json')) throw new Error('Layanan submission belum aktif.');
+    return response.json();
+  }
+  function message(text){ const box=$('message'); box.textContent=text; box.className='message show error'; }
+  async function init(){
+    try{
+      const response=await fetch(`/api/creator-submit?token=${encodeURIComponent(token)}`);
+      const data=await readApi(response); if(!response.ok) throw new Error(data.message||'Link tidak valid.');
+      $('creator').textContent=`@${data.username}`; $('loading').hidden=true; $('content').hidden=false;
+    }catch(error){ $('loading').textContent=error.message; $('loading').style.color='var(--red)'; }
+  }
+  $('form').addEventListener('submit',async event=>{
+    event.preventDefault(); const button=$('submitBtn'); button.disabled=true; button.textContent='Mengirim…'; $('message').className='message';
+    try{
+      const response=await fetch('/api/creator-submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,vt_url:$('vtUrl').value,spark_code:$('sparkCode').value})});
+      const data=await readApi(response); if(!response.ok||!data.ok) throw new Error(data.message||'Gagal mengirim.');
+      $('form').hidden=true; $('success').className='success show';
+    }catch(error){ message(error.message); }
+    finally{ button.disabled=false; button.textContent='Kirim sekarang'; }
+  });
+  $('sendAnother').onclick=()=>{ $('vtUrl').value=''; $('sparkCode').value=''; $('success').className='success'; $('form').hidden=false; $('vtUrl').focus(); };
+  init();
+</script>
+</body>
+</html>
